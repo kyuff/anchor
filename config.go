@@ -1,13 +1,17 @@
 package anchor
 
+import "context"
+
 type Config struct {
 	logger Logger
+	ctx    context.Context
 }
 
 func defaultOptions() *Config {
 	return applyOptions(&Config{},
 		// add default options here
 		WithNoopLogger(),
+		withBackgroundContext(),
 	)
 
 }

@@ -23,3 +23,14 @@ type setupComponent interface {
 type closeComponent interface {
 	Close() error
 }
+
+type namedComponent interface {
+	Name() string
+}
+
+type fullComponent interface {
+	setupComponent
+	Component
+	closeComponent
+	namedComponent
+}
