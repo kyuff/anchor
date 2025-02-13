@@ -5,13 +5,8 @@ package anchor_test
 
 import (
 	"context"
-	"github.com/kyuff/anchor"
 	"sync"
 )
-
-// Ensure, that ComponentMock does implement anchor.Component.
-// If this is not the case, regenerate this file with moq.
-var _ anchor.Component = &ComponentMock{}
 
 // ComponentMock is a mock implementation of anchor.Component.
 //
@@ -64,6 +59,186 @@ func (mock *ComponentMock) Start(ctx context.Context) error {
 //
 //	len(mockedComponent.StartCalls())
 func (mock *ComponentMock) StartCalls() []struct {
+	Ctx context.Context
+} {
+	var calls []struct {
+		Ctx context.Context
+	}
+	mock.lockStart.RLock()
+	calls = mock.calls.Start
+	mock.lockStart.RUnlock()
+	return calls
+}
+
+// fullComponentMock is a mock implementation of anchor.fullComponent.
+//
+//	func TestSomethingThatUsesfullComponent(t *testing.T) {
+//
+//		// make and configure a mocked anchor.fullComponent
+//		mockedfullComponent := &fullComponentMock{
+//			CloseFunc: func() error {
+//				panic("mock out the Close method")
+//			},
+//			NameFunc: func() string {
+//				panic("mock out the Name method")
+//			},
+//			SetupFunc: func(ctx context.Context) error {
+//				panic("mock out the Setup method")
+//			},
+//			StartFunc: func(ctx context.Context) error {
+//				panic("mock out the Start method")
+//			},
+//		}
+//
+//		// use mockedfullComponent in code that requires anchor.fullComponent
+//		// and then make assertions.
+//
+//	}
+type fullComponentMock struct {
+	// CloseFunc mocks the Close method.
+	CloseFunc func() error
+
+	// NameFunc mocks the Name method.
+	NameFunc func() string
+
+	// SetupFunc mocks the Setup method.
+	SetupFunc func(ctx context.Context) error
+
+	// StartFunc mocks the Start method.
+	StartFunc func(ctx context.Context) error
+
+	// calls tracks calls to the methods.
+	calls struct {
+		// Close holds details about calls to the Close method.
+		Close []struct {
+		}
+		// Name holds details about calls to the Name method.
+		Name []struct {
+		}
+		// Setup holds details about calls to the Setup method.
+		Setup []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+		}
+		// Start holds details about calls to the Start method.
+		Start []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+		}
+	}
+	lockClose sync.RWMutex
+	lockName  sync.RWMutex
+	lockSetup sync.RWMutex
+	lockStart sync.RWMutex
+}
+
+// Close calls CloseFunc.
+func (mock *fullComponentMock) Close() error {
+	if mock.CloseFunc == nil {
+		panic("fullComponentMock.CloseFunc: method is nil but fullComponent.Close was just called")
+	}
+	callInfo := struct {
+	}{}
+	mock.lockClose.Lock()
+	mock.calls.Close = append(mock.calls.Close, callInfo)
+	mock.lockClose.Unlock()
+	return mock.CloseFunc()
+}
+
+// CloseCalls gets all the calls that were made to Close.
+// Check the length with:
+//
+//	len(mockedfullComponent.CloseCalls())
+func (mock *fullComponentMock) CloseCalls() []struct {
+} {
+	var calls []struct {
+	}
+	mock.lockClose.RLock()
+	calls = mock.calls.Close
+	mock.lockClose.RUnlock()
+	return calls
+}
+
+// Name calls NameFunc.
+func (mock *fullComponentMock) Name() string {
+	if mock.NameFunc == nil {
+		panic("fullComponentMock.NameFunc: method is nil but fullComponent.Name was just called")
+	}
+	callInfo := struct {
+	}{}
+	mock.lockName.Lock()
+	mock.calls.Name = append(mock.calls.Name, callInfo)
+	mock.lockName.Unlock()
+	return mock.NameFunc()
+}
+
+// NameCalls gets all the calls that were made to Name.
+// Check the length with:
+//
+//	len(mockedfullComponent.NameCalls())
+func (mock *fullComponentMock) NameCalls() []struct {
+} {
+	var calls []struct {
+	}
+	mock.lockName.RLock()
+	calls = mock.calls.Name
+	mock.lockName.RUnlock()
+	return calls
+}
+
+// Setup calls SetupFunc.
+func (mock *fullComponentMock) Setup(ctx context.Context) error {
+	if mock.SetupFunc == nil {
+		panic("fullComponentMock.SetupFunc: method is nil but fullComponent.Setup was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+	}{
+		Ctx: ctx,
+	}
+	mock.lockSetup.Lock()
+	mock.calls.Setup = append(mock.calls.Setup, callInfo)
+	mock.lockSetup.Unlock()
+	return mock.SetupFunc(ctx)
+}
+
+// SetupCalls gets all the calls that were made to Setup.
+// Check the length with:
+//
+//	len(mockedfullComponent.SetupCalls())
+func (mock *fullComponentMock) SetupCalls() []struct {
+	Ctx context.Context
+} {
+	var calls []struct {
+		Ctx context.Context
+	}
+	mock.lockSetup.RLock()
+	calls = mock.calls.Setup
+	mock.lockSetup.RUnlock()
+	return calls
+}
+
+// Start calls StartFunc.
+func (mock *fullComponentMock) Start(ctx context.Context) error {
+	if mock.StartFunc == nil {
+		panic("fullComponentMock.StartFunc: method is nil but fullComponent.Start was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+	}{
+		Ctx: ctx,
+	}
+	mock.lockStart.Lock()
+	mock.calls.Start = append(mock.calls.Start, callInfo)
+	mock.lockStart.Unlock()
+	return mock.StartFunc(ctx)
+}
+
+// StartCalls gets all the calls that were made to Start.
+// Check the length with:
+//
+//	len(mockedfullComponent.StartCalls())
+func (mock *fullComponentMock) StartCalls() []struct {
 	Ctx context.Context
 } {
 	var calls []struct {

@@ -2,6 +2,7 @@ package anchor_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/kyuff/anchor"
@@ -9,17 +10,23 @@ import (
 )
 
 func TestAnchor(t *testing.T) {
-	t.Run("should start all components", func(t *testing.T) {
+	t.Run("should setup, start and close all components", func(t *testing.T) {
 		// arrange
 		var (
-			components = []*ComponentMock{{}, {}, {}}
+			components = []*fullComponentMock{{}, {}, {}}
 			sut        = anchor.New()
 		)
 
-		for _, component := range components {
+		for i, component := range components {
+			component.SetupFunc = func(ctx context.Context) error {
+				return nil
+			}
 			component.StartFunc = func(ctx context.Context) error {
 				return nil
 			}
+			component.CloseFunc = func() error { return nil }
+			component.NameFunc = func() string { return fmt.Sprintf("mock-%d", i) }
+
 			sut.Add(component)
 		}
 
@@ -29,7 +36,9 @@ func TestAnchor(t *testing.T) {
 		// assert
 		assert.Equal(t, 0, code)
 		for _, component := range components {
+			assert.Equal(t, 1, len(component.SetupCalls()))
 			assert.Equal(t, 1, len(component.StartCalls()))
+			assert.Equal(t, 1, len(component.CloseCalls()))
 		}
 	})
 }
