@@ -1,6 +1,10 @@
 package anchor
 
-import "sync/atomic"
+import (
+	"sync/atomic"
+
+	"golang.org/x/sync/errgroup"
+)
 
 func New(opts ...Option) *Anchor {
 	return &Anchor{
@@ -10,8 +14,11 @@ func New(opts ...Option) *Anchor {
 
 type Anchor struct {
 	cfg        *Config
-	components []Component
+	components []fullComponent
 	running    atomic.Bool
+	// index to the last component that was setup
+	// used to be able to close in reverse order
+	setupIndex int
 }
 
 // Add will manage the Component list by the Anchor.
@@ -25,12 +32,86 @@ func (a *Anchor) Add(components ...Component) *Anchor {
 		panic("cannot add components after Run is called")
 	}
 
-	a.components = append(a.components, components...)
+	for _, component := range components {
+		if component == nil {
+			panic("cannot add nil component")
+		}
+
+		a.components = append(a.components, decorateComponent(component))
+	}
+
 	return a
 }
 
 func (a *Anchor) Run() int {
-	a.running.Store(true)
+	if !a.running.CompareAndSwap(false, true) {
+		panic("anchor is already running")
+	}
+
+	err := a.setupAll()
+	if err != nil {
+		return 1
+	}
+
+	err = a.startAll()
+	if err != nil {
+		return 1
+	}
+
+	err = a.closeAll()
+	if err != nil {
+		return 1
+	}
 
 	return 0
+}
+
+func (a *Anchor) startAll() error {
+	g, ctx := errgroup.WithContext(a.cfg.ctx)
+
+	for _, component := range a.components {
+		g.Go(func() error {
+			a.cfg.logger.InfofCtx(a.cfg.ctx, "[anchor] Starting component %s: %v", component.Name())
+			err := component.Start(ctx)
+			if err != nil {
+				a.cfg.logger.ErrorfCtx(a.cfg.ctx, "[anchor] Failed to start component %s: %v", component.Name(), err)
+				return err
+			}
+
+			a.cfg.logger.InfofCtx(a.cfg.ctx, "[anchor] Component exit: %s", component.Name())
+			return nil
+		})
+	}
+
+	return g.Wait()
+}
+
+func (a *Anchor) setupAll() error {
+	for ; a.setupIndex < len(a.components); a.setupIndex++ {
+		component := a.components[a.setupIndex]
+		err := component.Setup(a.cfg.ctx)
+		if err != nil {
+			a.cfg.logger.ErrorfCtx(a.cfg.ctx, "[anchor] Setup component %s: %v", component.Name(), err)
+			return err
+		}
+
+		a.cfg.logger.ErrorfCtx(a.cfg.ctx, "[anchor] Setup component %s", component.Name())
+	}
+
+	return nil
+}
+
+func (a *Anchor) closeAll() error {
+	for ; a.setupIndex > 0; a.setupIndex-- {
+		component := a.components[a.setupIndex-1]
+		err := component.Close()
+		if err != nil {
+			a.cfg.logger.ErrorfCtx(a.cfg.ctx, "[anchor] Closed component %s: %v", component.Name(), err)
+			continue
+		}
+
+		a.cfg.logger.InfofCtx(a.cfg.ctx, "[anchor] Closed component %s", component.Name())
+	}
+
+	return nil
 }
