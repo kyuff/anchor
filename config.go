@@ -1,17 +1,24 @@
 package anchor
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 type Config struct {
 	logger Logger
-	ctx    context.Context
+	// rootCtx is used to derive the setup, start and close contexts.
+	rootCtx      context.Context
+	setupTimeout time.Duration
+	closeTimeout time.Duration
 }
 
 func defaultOptions() *Config {
 	return applyOptions(&Config{},
 		// add default options here
 		WithNoopLogger(),
-		withBackgroundContext(),
+		WithContext(context.Background()),
+		WithSetupTimeout(0), // no timeout
 	)
 
 }

@@ -79,3 +79,19 @@ func Truef(t *testing.T, got bool, format string, args ...any) bool {
 
 	return true
 }
+
+func EqualSlice[T comparable](t *testing.T, expected, got []T) bool {
+	t.Helper()
+	if len(expected) != len(got) {
+		t.Errorf(`Expected %d elements, but got %d`, len(expected), len(got))
+		return false
+	}
+
+	for i := range len(expected) {
+		if !Equal(t, expected[i], got[i]) {
+			return false
+		}
+	}
+
+	return true
+}
