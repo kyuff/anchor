@@ -249,3 +249,65 @@ func (mock *fullComponentMock) StartCalls() []struct {
 	mock.lockStart.RUnlock()
 	return calls
 }
+
+// WireMock is a mock implementation of anchor.Wire.
+//
+//	func TestSomethingThatUsesWire(t *testing.T) {
+//
+//		// make and configure a mocked anchor.Wire
+//		mockedWire := &WireMock{
+//			WireFunc: func(ctx context.Context) (context.Context, context.CancelFunc) {
+//				panic("mock out the Wire method")
+//			},
+//		}
+//
+//		// use mockedWire in code that requires anchor.Wire
+//		// and then make assertions.
+//
+//	}
+type WireMock struct {
+	// WireFunc mocks the Wire method.
+	WireFunc func(ctx context.Context) (context.Context, context.CancelFunc)
+
+	// calls tracks calls to the methods.
+	calls struct {
+		// Wire holds details about calls to the Wire method.
+		Wire []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+		}
+	}
+	lockWire sync.RWMutex
+}
+
+// Wire calls WireFunc.
+func (mock *WireMock) Wire(ctx context.Context) (context.Context, context.CancelFunc) {
+	if mock.WireFunc == nil {
+		panic("WireMock.WireFunc: method is nil but Wire.Wire was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+	}{
+		Ctx: ctx,
+	}
+	mock.lockWire.Lock()
+	mock.calls.Wire = append(mock.calls.Wire, callInfo)
+	mock.lockWire.Unlock()
+	return mock.WireFunc(ctx)
+}
+
+// WireCalls gets all the calls that were made to Wire.
+// Check the length with:
+//
+//	len(mockedWire.WireCalls())
+func (mock *WireMock) WireCalls() []struct {
+	Ctx context.Context
+} {
+	var calls []struct {
+		Ctx context.Context
+	}
+	mock.lockWire.RLock()
+	calls = mock.calls.Wire
+	mock.lockWire.RUnlock()
+	return calls
+}
