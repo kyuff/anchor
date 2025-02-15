@@ -311,3 +311,58 @@ func (mock *WireMock) WireCalls() []struct {
 	mock.lockWire.RUnlock()
 	return calls
 }
+
+// TestingMMock is a mock implementation of anchor.TestingM.
+//
+//	func TestSomethingThatUsesTestingM(t *testing.T) {
+//
+//		// make and configure a mocked anchor.TestingM
+//		mockedTestingM := &TestingMMock{
+//			RunFunc: func() int {
+//				panic("mock out the Run method")
+//			},
+//		}
+//
+//		// use mockedTestingM in code that requires anchor.TestingM
+//		// and then make assertions.
+//
+//	}
+type TestingMMock struct {
+	// RunFunc mocks the Run method.
+	RunFunc func() int
+
+	// calls tracks calls to the methods.
+	calls struct {
+		// Run holds details about calls to the Run method.
+		Run []struct {
+		}
+	}
+	lockRun sync.RWMutex
+}
+
+// Run calls RunFunc.
+func (mock *TestingMMock) Run() int {
+	if mock.RunFunc == nil {
+		panic("TestingMMock.RunFunc: method is nil but TestingM.Run was just called")
+	}
+	callInfo := struct {
+	}{}
+	mock.lockRun.Lock()
+	mock.calls.Run = append(mock.calls.Run, callInfo)
+	mock.lockRun.Unlock()
+	return mock.RunFunc()
+}
+
+// RunCalls gets all the calls that were made to Run.
+// Check the length with:
+//
+//	len(mockedTestingM.RunCalls())
+func (mock *TestingMMock) RunCalls() []struct {
+} {
+	var calls []struct {
+	}
+	mock.lockRun.RLock()
+	calls = mock.calls.Run
+	mock.lockRun.RUnlock()
+	return calls
+}
