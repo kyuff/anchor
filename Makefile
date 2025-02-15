@@ -2,6 +2,9 @@
 test:
 	go test ./... -count 1 -race
 
+test-coverage:
+	go test -coverprofile=coverage.txt ./... -count 1 -race
+
 vet:
 	go vet ./...
 
