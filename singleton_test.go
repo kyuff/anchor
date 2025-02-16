@@ -51,44 +51,50 @@ func TestSingleton(t *testing.T) {
 	t.Run("panic on error", func(t *testing.T) {
 		// arrange
 		var (
-			didPanic = false
-			sut      = anchor.Singleton(func() (int, error) {
+			sut = anchor.Singleton(func() (int, error) {
 				return 0, errors.New("TEST")
 			})
 		)
 
-		defer func() {
-			if err := recover(); err != nil {
-				didPanic = true
-			}
-		}()
-
-		// act
-		_ = sut()
-
-		// act
-		assert.Truef(t, didPanic, "panic done")
+		// assert
+		assert.Panic(t, func() {
+			// act
+			_ = sut()
+		})
 	})
 
 	t.Run("panic on panic", func(t *testing.T) {
 		// arrange
 		var (
-			didPanic = false
-			sut      = anchor.Singleton(func() (int, error) {
+			sut = anchor.Singleton(func() (int, error) {
 				panic("TEST")
 			})
 		)
 
-		defer func() {
-			if err := recover(); err != nil {
-				didPanic = true
-			}
-		}()
+		// assert
+		assert.Panic(t, func() {
+			// act
+			_ = sut()
+		})
+	})
 
-		// act
-		_ = sut()
+	t.Run("panic on repeat", func(t *testing.T) {
+		// arrange
+		var (
+			sut = anchor.Singleton(func() (int, error) {
+				panic("TEST")
+			})
+		)
 
-		// act
-		assert.Truef(t, didPanic, "panic done")
+		assert.Panic(t, func() {
+			// act
+			_ = sut()
+		})
+
+		// assert
+		assert.Panic(t, func() {
+			// act
+			_ = sut()
+		})
 	})
 }

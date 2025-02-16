@@ -1,6 +1,7 @@
 package assert_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/kyuff/anchor/internal/assert"
@@ -48,9 +49,16 @@ func TestAsserts(t *testing.T) {
 			failed: false,
 		},
 		{
-			name: "EqualSlice failed",
+			name: "EqualSlice failed size",
 			assert: func(t *testing.T) {
 				assert.EqualSlice(t, []int{1, 2, 3}, []int{})
+			},
+			failed: true,
+		},
+		{
+			name: "EqualSlice failed item",
+			assert: func(t *testing.T) {
+				assert.EqualSlice(t, []int{1, 2, 3}, []int{1, 2, 4})
 			},
 			failed: true,
 		},
@@ -65,6 +73,70 @@ func TestAsserts(t *testing.T) {
 			name: "Truef failed",
 			assert: func(t *testing.T) {
 				assert.Truef(t, false, "hello test")
+			},
+			failed: true,
+		},
+		{
+			name: "NoError success",
+			assert: func(t *testing.T) {
+				assert.NoError(t, nil)
+			},
+			failed: false,
+		},
+		{
+			name: "NoError failed",
+			assert: func(t *testing.T) {
+				assert.NoError(t, errors.New("error"))
+			},
+			failed: true,
+		},
+		{
+			name: "Error success",
+			assert: func(t *testing.T) {
+				assert.Error(t, errors.New("error"))
+			},
+			failed: false,
+		},
+		{
+			name: "Error failed",
+			assert: func(t *testing.T) {
+				assert.Error(t, nil)
+			},
+			failed: true,
+		},
+		{
+			name: "Panic success",
+			assert: func(t *testing.T) {
+				assert.Panic(t, func() {
+					panic("test")
+				})
+			},
+			failed: false,
+		},
+		{
+			name: "Panic failed",
+			assert: func(t *testing.T) {
+				assert.Panic(t, func() {
+					// ... no panic
+				})
+			},
+			failed: true,
+		},
+		{
+			name: "NoPanic success",
+			assert: func(t *testing.T) {
+				assert.NoPanic(t, func() {
+					// ... no panic
+				})
+			},
+			failed: false,
+		},
+		{
+			name: "NoPanic failed",
+			assert: func(t *testing.T) {
+				assert.NoPanic(t, func() {
+					panic("test")
+				})
 			},
 			failed: true,
 		},
