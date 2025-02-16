@@ -170,6 +170,77 @@ func TestAnchor(t *testing.T) {
 		}
 	})
 
+	t.Run("panic on nil components", func(t *testing.T) {
+		// arrange
+		var (
+			wg   = &sync.WaitGroup{}
+			wire = newWire(t, wg)
+			sut  = anchor.New(wire)
+		)
+
+		// assert
+		assert.Panic(t, func() {
+			// act
+			_ = sut.Add(nil)
+		})
+	})
+
+	t.Run("panic on add to running anchor", func(t *testing.T) {
+		// arrange
+		var (
+			wireWg  = &sync.WaitGroup{}
+			startWg = &sync.WaitGroup{}
+			wire    = newWire(t, wireWg)
+			sut     = anchor.New(wire)
+		)
+
+		wireWg.Add(1)
+		startWg.Add(1)
+		t.Cleanup(wireWg.Done)
+
+		sut.Add(newComponent("c-0", doneOnStart(startWg)))
+
+		go func() {
+			_ = sut.Run()
+		}()
+
+		startWg.Wait()
+
+		// assert
+		assert.Panic(t, func() {
+			// act
+			_ = sut.Add(newComponent("c-0"))
+		})
+	})
+
+	t.Run("panic on second run", func(t *testing.T) {
+		// arrange
+		var (
+			wireWg  = &sync.WaitGroup{}
+			startWg = &sync.WaitGroup{}
+			wire    = newWire(t, wireWg)
+			sut     = anchor.New(wire)
+		)
+
+		wireWg.Add(1)
+		startWg.Add(1)
+		t.Cleanup(wireWg.Done)
+
+		sut.Add(newComponent("c-0", doneOnStart(startWg)))
+
+		go func() {
+			_ = sut.Run()
+		}()
+
+		startWg.Wait()
+
+		// assert
+		assert.Panic(t, func() {
+			// act
+			_ = sut.Run()
+		})
+	})
+
 	t.Run("exit with no components", func(t *testing.T) {
 		// arrange
 		var (

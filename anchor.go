@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync/atomic"
 
+	"github.com/kyuff/anchor/internal/decorate"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -47,7 +48,7 @@ func (a *Anchor) Add(components ...Component) *Anchor {
 			panic("cannot add nil component")
 		}
 
-		a.components = append(a.components, decorateComponent(component))
+		a.components = append(a.components, decorate.New(component))
 	}
 
 	return a

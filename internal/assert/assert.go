@@ -48,3 +48,50 @@ func EqualSlice[T comparable](t *testing.T, expected, got []T) bool {
 
 	return true
 }
+
+func NoError(t *testing.T, got error) bool {
+	t.Helper()
+	if got != nil {
+		t.Logf("Unexpected error: %s", got)
+		t.Fail()
+		return false
+	}
+
+	return true
+}
+
+func Error(t *testing.T, got error) bool {
+	t.Helper()
+	if got == nil {
+		t.Logf("Expected error: %s", got)
+		t.Fail()
+		return false
+	}
+
+	return true
+}
+
+func Panic(t *testing.T, assert func()) {
+	t.Helper()
+	defer func() {
+		if m := recover(); m != nil {
+			return
+		}
+		t.Logf(`Expected panic, but it did not happen!`)
+		t.Fail()
+	}()
+
+	assert()
+}
+
+func NoPanic(t *testing.T, assert func()) {
+	t.Helper()
+	defer func() {
+		if m := recover(); m != nil {
+			t.Logf("Unexpected panic: %v", m)
+			t.Fail()
+		}
+	}()
+
+	assert()
+}
