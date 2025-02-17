@@ -14,7 +14,7 @@ import (
 //
 //		// make and configure a mocked decorate.fullComponent
 //		mockedfullComponent := &fullComponentMock{
-//			CloseFunc: func() error {
+//			CloseFunc: func(ctx context.Context) error {
 //				panic("mock out the Close method")
 //			},
 //			NameFunc: func() string {
@@ -34,7 +34,7 @@ import (
 //	}
 type fullComponentMock struct {
 	// CloseFunc mocks the Close method.
-	CloseFunc func() error
+	CloseFunc func(ctx context.Context) error
 
 	// NameFunc mocks the Name method.
 	NameFunc func() string
@@ -49,6 +49,8 @@ type fullComponentMock struct {
 	calls struct {
 		// Close holds details about calls to the Close method.
 		Close []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 		}
 		// Name holds details about calls to the Name method.
 		Name []struct {
@@ -71,16 +73,19 @@ type fullComponentMock struct {
 }
 
 // Close calls CloseFunc.
-func (mock *fullComponentMock) Close() error {
+func (mock *fullComponentMock) Close(ctx context.Context) error {
 	if mock.CloseFunc == nil {
 		panic("fullComponentMock.CloseFunc: method is nil but fullComponent.Close was just called")
 	}
 	callInfo := struct {
-	}{}
+		Ctx context.Context
+	}{
+		Ctx: ctx,
+	}
 	mock.lockClose.Lock()
 	mock.calls.Close = append(mock.calls.Close, callInfo)
 	mock.lockClose.Unlock()
-	return mock.CloseFunc()
+	return mock.CloseFunc(ctx)
 }
 
 // CloseCalls gets all the calls that were made to Close.
@@ -88,8 +93,10 @@ func (mock *fullComponentMock) Close() error {
 //
 //	len(mockedfullComponent.CloseCalls())
 func (mock *fullComponentMock) CloseCalls() []struct {
+	Ctx context.Context
 } {
 	var calls []struct {
+		Ctx context.Context
 	}
 	mock.lockClose.RLock()
 	calls = mock.calls.Close
@@ -256,7 +263,7 @@ func (mock *starterMock) StartCalls() []struct {
 //
 //		// make and configure a mocked decorate.setupper
 //		mockedsetupper := &setupperMock{
-//			SetupFunc: func(ctx context.Context) error {
+//			SetupFunc: func() error {
 //				panic("mock out the Setup method")
 //			},
 //			StartFunc: func(ctx context.Context) error {
@@ -270,7 +277,7 @@ func (mock *starterMock) StartCalls() []struct {
 //	}
 type setupperMock struct {
 	// SetupFunc mocks the Setup method.
-	SetupFunc func(ctx context.Context) error
+	SetupFunc func() error
 
 	// StartFunc mocks the Start method.
 	StartFunc func(ctx context.Context) error
@@ -279,8 +286,6 @@ type setupperMock struct {
 	calls struct {
 		// Setup holds details about calls to the Setup method.
 		Setup []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
 		}
 		// Start holds details about calls to the Start method.
 		Start []struct {
@@ -293,19 +298,16 @@ type setupperMock struct {
 }
 
 // Setup calls SetupFunc.
-func (mock *setupperMock) Setup(ctx context.Context) error {
+func (mock *setupperMock) Setup() error {
 	if mock.SetupFunc == nil {
 		panic("setupperMock.SetupFunc: method is nil but setupper.Setup was just called")
 	}
 	callInfo := struct {
-		Ctx context.Context
-	}{
-		Ctx: ctx,
-	}
+	}{}
 	mock.lockSetup.Lock()
 	mock.calls.Setup = append(mock.calls.Setup, callInfo)
 	mock.lockSetup.Unlock()
-	return mock.SetupFunc(ctx)
+	return mock.SetupFunc()
 }
 
 // SetupCalls gets all the calls that were made to Setup.
@@ -313,10 +315,8 @@ func (mock *setupperMock) Setup(ctx context.Context) error {
 //
 //	len(mockedsetupper.SetupCalls())
 func (mock *setupperMock) SetupCalls() []struct {
-	Ctx context.Context
 } {
 	var calls []struct {
-		Ctx context.Context
 	}
 	mock.lockSetup.RLock()
 	calls = mock.calls.Setup
@@ -345,6 +345,112 @@ func (mock *setupperMock) Start(ctx context.Context) error {
 //
 //	len(mockedsetupper.StartCalls())
 func (mock *setupperMock) StartCalls() []struct {
+	Ctx context.Context
+} {
+	var calls []struct {
+		Ctx context.Context
+	}
+	mock.lockStart.RLock()
+	calls = mock.calls.Start
+	mock.lockStart.RUnlock()
+	return calls
+}
+
+// contextSetupperMock is a mock implementation of decorate.contextSetupper.
+//
+//	func TestSomethingThatUsescontextSetupper(t *testing.T) {
+//
+//		// make and configure a mocked decorate.contextSetupper
+//		mockedcontextSetupper := &contextSetupperMock{
+//			SetupFunc: func(ctx context.Context) error {
+//				panic("mock out the Setup method")
+//			},
+//			StartFunc: func(ctx context.Context) error {
+//				panic("mock out the Start method")
+//			},
+//		}
+//
+//		// use mockedcontextSetupper in code that requires decorate.contextSetupper
+//		// and then make assertions.
+//
+//	}
+type contextSetupperMock struct {
+	// SetupFunc mocks the Setup method.
+	SetupFunc func(ctx context.Context) error
+
+	// StartFunc mocks the Start method.
+	StartFunc func(ctx context.Context) error
+
+	// calls tracks calls to the methods.
+	calls struct {
+		// Setup holds details about calls to the Setup method.
+		Setup []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+		}
+		// Start holds details about calls to the Start method.
+		Start []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+		}
+	}
+	lockSetup sync.RWMutex
+	lockStart sync.RWMutex
+}
+
+// Setup calls SetupFunc.
+func (mock *contextSetupperMock) Setup(ctx context.Context) error {
+	if mock.SetupFunc == nil {
+		panic("contextSetupperMock.SetupFunc: method is nil but contextSetupper.Setup was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+	}{
+		Ctx: ctx,
+	}
+	mock.lockSetup.Lock()
+	mock.calls.Setup = append(mock.calls.Setup, callInfo)
+	mock.lockSetup.Unlock()
+	return mock.SetupFunc(ctx)
+}
+
+// SetupCalls gets all the calls that were made to Setup.
+// Check the length with:
+//
+//	len(mockedcontextSetupper.SetupCalls())
+func (mock *contextSetupperMock) SetupCalls() []struct {
+	Ctx context.Context
+} {
+	var calls []struct {
+		Ctx context.Context
+	}
+	mock.lockSetup.RLock()
+	calls = mock.calls.Setup
+	mock.lockSetup.RUnlock()
+	return calls
+}
+
+// Start calls StartFunc.
+func (mock *contextSetupperMock) Start(ctx context.Context) error {
+	if mock.StartFunc == nil {
+		panic("contextSetupperMock.StartFunc: method is nil but contextSetupper.Start was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+	}{
+		Ctx: ctx,
+	}
+	mock.lockStart.Lock()
+	mock.calls.Start = append(mock.calls.Start, callInfo)
+	mock.lockStart.Unlock()
+	return mock.StartFunc(ctx)
+}
+
+// StartCalls gets all the calls that were made to Start.
+// Check the length with:
+//
+//	len(mockedcontextSetupper.StartCalls())
+func (mock *contextSetupperMock) StartCalls() []struct {
 	Ctx context.Context
 } {
 	var calls []struct {
@@ -444,6 +550,112 @@ func (mock *closerMock) Start(ctx context.Context) error {
 //
 //	len(mockedcloser.StartCalls())
 func (mock *closerMock) StartCalls() []struct {
+	Ctx context.Context
+} {
+	var calls []struct {
+		Ctx context.Context
+	}
+	mock.lockStart.RLock()
+	calls = mock.calls.Start
+	mock.lockStart.RUnlock()
+	return calls
+}
+
+// contextCloserMock is a mock implementation of decorate.contextCloser.
+//
+//	func TestSomethingThatUsescontextCloser(t *testing.T) {
+//
+//		// make and configure a mocked decorate.contextCloser
+//		mockedcontextCloser := &contextCloserMock{
+//			CloseFunc: func(ctx context.Context) error {
+//				panic("mock out the Close method")
+//			},
+//			StartFunc: func(ctx context.Context) error {
+//				panic("mock out the Start method")
+//			},
+//		}
+//
+//		// use mockedcontextCloser in code that requires decorate.contextCloser
+//		// and then make assertions.
+//
+//	}
+type contextCloserMock struct {
+	// CloseFunc mocks the Close method.
+	CloseFunc func(ctx context.Context) error
+
+	// StartFunc mocks the Start method.
+	StartFunc func(ctx context.Context) error
+
+	// calls tracks calls to the methods.
+	calls struct {
+		// Close holds details about calls to the Close method.
+		Close []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+		}
+		// Start holds details about calls to the Start method.
+		Start []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+		}
+	}
+	lockClose sync.RWMutex
+	lockStart sync.RWMutex
+}
+
+// Close calls CloseFunc.
+func (mock *contextCloserMock) Close(ctx context.Context) error {
+	if mock.CloseFunc == nil {
+		panic("contextCloserMock.CloseFunc: method is nil but contextCloser.Close was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+	}{
+		Ctx: ctx,
+	}
+	mock.lockClose.Lock()
+	mock.calls.Close = append(mock.calls.Close, callInfo)
+	mock.lockClose.Unlock()
+	return mock.CloseFunc(ctx)
+}
+
+// CloseCalls gets all the calls that were made to Close.
+// Check the length with:
+//
+//	len(mockedcontextCloser.CloseCalls())
+func (mock *contextCloserMock) CloseCalls() []struct {
+	Ctx context.Context
+} {
+	var calls []struct {
+		Ctx context.Context
+	}
+	mock.lockClose.RLock()
+	calls = mock.calls.Close
+	mock.lockClose.RUnlock()
+	return calls
+}
+
+// Start calls StartFunc.
+func (mock *contextCloserMock) Start(ctx context.Context) error {
+	if mock.StartFunc == nil {
+		panic("contextCloserMock.StartFunc: method is nil but contextCloser.Start was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+	}{
+		Ctx: ctx,
+	}
+	mock.lockStart.Lock()
+	mock.calls.Start = append(mock.calls.Start, callInfo)
+	mock.lockStart.Unlock()
+	return mock.StartFunc(ctx)
+}
+
+// StartCalls gets all the calls that were made to Start.
+// Check the length with:
+//
+//	len(mockedcontextCloser.StartCalls())
+func (mock *contextCloserMock) StartCalls() []struct {
 	Ctx context.Context
 } {
 	var calls []struct {

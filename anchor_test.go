@@ -47,6 +47,7 @@ func TestAnchor(t *testing.T) {
 			return func(c *fullComponentMock) {
 				start := c.StartFunc
 				c.StartFunc = func(ctx context.Context) error {
+					// slight delay to mimic a process running
 					wg.Done()
 					return start(ctx)
 				}
@@ -54,17 +55,14 @@ func TestAnchor(t *testing.T) {
 		}
 		errorOnStart = func(err error) func(c *fullComponentMock) {
 			return func(c *fullComponentMock) {
-				start := c.StartFunc
 				c.StartFunc = func(ctx context.Context) error {
-					return errors.Join(start(ctx), err)
+					return err
 				}
 			}
 		}
 		panicOnStart = func(msg any) func(c *fullComponentMock) {
 			return func(c *fullComponentMock) {
-				start := c.StartFunc
 				c.StartFunc = func(ctx context.Context) error {
-					_ = start(ctx)
 					panic(msg)
 				}
 			}
@@ -93,21 +91,21 @@ func TestAnchor(t *testing.T) {
 		}
 		errorOnClose = func(err error) func(c *fullComponentMock) {
 			return func(c *fullComponentMock) {
-				c.CloseFunc = func() error {
+				c.CloseFunc = func(ctx context.Context) error {
 					return err
 				}
 			}
 		}
 		panicOnClose = func(msg any) func(c *fullComponentMock) {
 			return func(c *fullComponentMock) {
-				c.CloseFunc = func() error {
+				c.CloseFunc = func(ctx context.Context) error {
 					panic(msg)
 				}
 			}
 		}
 		newComponent = func(name string, mods ...func(c *fullComponentMock)) *fullComponentMock {
 			c := &fullComponentMock{
-				CloseFunc: func() error {
+				CloseFunc: func(ctx context.Context) error {
 					return nil
 				},
 				NameFunc: func() string {
@@ -462,7 +460,7 @@ func TestAnchor(t *testing.T) {
 				newComponent("c-2", doneOnStart(wg)),
 			}
 			wire = newWire(t, wg)
-			sut  = anchor.New(wire)
+			sut  = anchor.New(wire, anchor.WithDefaultSlog())
 		)
 
 		for _, component := range components {
@@ -523,7 +521,7 @@ func TestAnchor(t *testing.T) {
 			names      []string
 			recordName = func() func(c *fullComponentMock) {
 				return func(c *fullComponentMock) {
-					c.CloseFunc = func() error {
+					c.CloseFunc = func(ctx context.Context) error {
 						names = append(names, c.Name())
 						return nil
 					}
@@ -638,6 +636,40 @@ func TestAnchor(t *testing.T) {
 			component = newComponent("blocking component", func(c *fullComponentMock) {
 				c.StartFunc = func(ctx context.Context) error {
 					wg.Done()
+					// block eternal
+					<-t.Context().Done()
+					return nil
+				}
+			})
+			wire = newWire(t, wg)
+			sut  = anchor.New(wire,
+				anchor.WithCloseTimeout(time.Millisecond*200),
+			)
+		)
+
+		wg.Add(1)
+		sut.Add(component)
+
+		// act
+		code := sut.Run()
+
+		// assert
+		assert.Equal(t, anchor.OK, code)
+		assertCalls(t, component, setupCalled, startCalled, closeCalled)
+	})
+
+	t.Run("interrupt when close blocks", func(t *testing.T) {
+		// arrange
+		var (
+			wg        = &sync.WaitGroup{}
+			component = newComponent("blocking component", func(c *fullComponentMock) {
+				c.StartFunc = func(ctx context.Context) error {
+					wg.Done()
+					// block eternal
+					<-t.Context().Done()
+					return nil
+				}
+				c.CloseFunc = func(ctx context.Context) error {
 					// block eternal
 					<-t.Context().Done()
 					return nil

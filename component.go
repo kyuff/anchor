@@ -1,6 +1,10 @@
 package anchor
 
-import "context"
+import (
+	"context"
+
+	"github.com/kyuff/anchor/internal/decorate"
+)
 
 // Component is a central part of an application that needs to have it's lifetime managed.
 //
@@ -16,12 +20,31 @@ type Component interface {
 	Start(ctx context.Context) error
 }
 
+// Setup creates a component that have an empty Start() and Close() method, but
+// have Setup. It is a convenience to run code before full application start.
+func Setup(name string, fn func() error) Component {
+	return decorate.Setup(name, fn)
+}
+
+// setupComponent allows a Component to create resources before Start
 type setupComponent interface {
+	Setup() error
+}
+
+// contextSetupComponent allows a Component to create resources before Start
+// The context gives the Deadline in which Setup must be complete.
+type contextSetupComponent interface {
 	Setup(ctx context.Context) error
 }
 
+// closeComponent is a standard io.Closer to free up resources on a graceful shutdown.
 type closeComponent interface {
 	Close() error
+}
+
+// contextCloseComponent is a component that close within the Deadline of the Context.
+type contextCloseComponent interface {
+	Close(ctx context.Context) error
 }
 
 type namedComponent interface {
@@ -29,8 +52,8 @@ type namedComponent interface {
 }
 
 type fullComponent interface {
-	setupComponent
+	contextSetupComponent
 	Component
-	closeComponent
+	contextCloseComponent
 	namedComponent
 }
