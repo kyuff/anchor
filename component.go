@@ -16,12 +16,25 @@ type Component interface {
 	Start(ctx context.Context) error
 }
 
+// setupComponent allows a Component to create resources before Start
 type setupComponent interface {
+	Setup() error
+}
+
+// contextSetupComponent allows a Component to create resources before Start
+// The context gives the Deadline in which Setup must be complete.
+type contextSetupComponent interface {
 	Setup(ctx context.Context) error
 }
 
+// closeComponent is a standard io.Closer to free up resources on a graceful shutdown.
 type closeComponent interface {
 	Close() error
+}
+
+// contextCloseComponent is a component that close within the Deadline of the Context.
+type contextCloseComponent interface {
+	Close(ctx context.Context) error
 }
 
 type namedComponent interface {
@@ -29,8 +42,8 @@ type namedComponent interface {
 }
 
 type fullComponent interface {
-	setupComponent
+	contextSetupComponent
 	Component
-	closeComponent
+	contextCloseComponent
 	namedComponent
 }

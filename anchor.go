@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"sync/atomic"
-	"time"
 
 	"github.com/kyuff/anchor/internal/decorate"
 	"golang.org/x/sync/errgroup"
@@ -13,9 +12,9 @@ import (
 
 func New(wire Wire, opts ...Option) *Anchor {
 	return &Anchor{
-		cfg:          applyOptions(defaultOptions(), opts...),
-		wire:         wire,
-		exitCodeChan: make(chan int, 1),
+		cfg:       applyOptions(defaultOptions(), opts...),
+		wire:      wire,
+		closeChan: make(chan int, 1),
 	}
 }
 
@@ -30,7 +29,7 @@ type Anchor struct {
 	// used to be able to close in reverse order
 	setupIndex int
 
-	exitCodeChan chan int
+	closeChan chan int
 }
 
 // Add will manage the Component list by the Anchor.
@@ -69,23 +68,36 @@ func (a *Anchor) Run() int {
 	ctx, cancel := a.wire.Wire(a.cfg.rootCtx)
 	defer cancel()
 
+	closed := make(chan int)
+	// monitor closeChan
+	go func() {
+		var code int
+		select {
+		case <-ctx.Done():
+			code = OK
+		case c := <-a.closeChan:
+			code = c
+		}
+
+		closeCode := a.closeAll(context.Background())
+		if code != OK {
+			closed <- code
+		} else {
+			closed <- closeCode
+		}
+	}()
+
 	if code := a.setupAll(ctx); code != OK {
-		cancel()
-		a.exitCodeChan <- code
+		a.signalClose(code)
 	} else {
 		go a.startAll(ctx)
 	}
 
-	<-ctx.Done()
+	return <-closed
+}
 
-	a.closeAll()
-
-	select {
-	case code := <-a.exitCodeChan:
-		return code
-	case <-time.After(a.cfg.closeTimeout):
-		return Interrupted
-	}
+func (a *Anchor) signalClose(code int) {
+	a.closeChan <- code
 }
 
 func (a *Anchor) startAll(ctx context.Context) {
@@ -99,11 +111,10 @@ func (a *Anchor) startAll(ctx context.Context) {
 
 	err := g.Wait()
 	if err != nil {
-		a.exitCodeChan <- Internal
+		a.signalClose(Internal)
+	} else {
+		a.signalClose(OK)
 	}
-
-	a.exitCodeChan <- OK
-	close(a.exitCodeChan)
 }
 
 func (a *Anchor) startComponent(ctx context.Context, component fullComponent) (err error) {
@@ -174,21 +185,36 @@ func (a *Anchor) setupComponent(ctx context.Context, component fullComponent) (c
 
 }
 
-func (a *Anchor) closeAll() {
-	for index := a.setupIndex; index >= 0; index-- {
-		a.closeComponent(a.components[index])
-		a.setupIndex = index
+func (a *Anchor) closeAll(ctx context.Context) int {
+	done := make(chan int, 1)
+	ctx, cancel := context.WithTimeout(ctx, a.cfg.closeTimeout)
+	go func() {
+		defer cancel()
+
+		for index := a.setupIndex; index >= 0; index-- {
+			a.closeComponent(ctx, a.components[index])
+			a.setupIndex = index
+		}
+
+		done <- OK
+	}()
+
+	select {
+	case code := <-done:
+		return code
+	case <-ctx.Done():
+		return Interrupted
 	}
 }
 
-func (a *Anchor) closeComponent(component fullComponent) {
+func (a *Anchor) closeComponent(ctx context.Context, component fullComponent) {
 	defer func() {
 		if panicErr := recover(); panicErr != nil {
 			a.cfg.logger.ErrorfCtx(a.cfg.rootCtx, "[anchor] Close %q panic: %v", component.Name(), panicErr)
 		}
 	}()
 
-	err := component.Close()
+	err := component.Close(ctx)
 	if err != nil {
 		a.cfg.logger.ErrorfCtx(a.cfg.rootCtx, "[anchor] Closed component %s: %v", component.Name(), err)
 	}

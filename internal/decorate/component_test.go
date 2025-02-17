@@ -26,7 +26,7 @@ func TestComponent(t *testing.T) {
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
 		assert.Error(t, sut.Start(t.Context()))
-		assert.NoError(t, sut.Close())
+		assert.NoError(t, sut.Close(t.Context()))
 		assert.Equal(t, "*decorate_test.starterMock", sut.Name())
 	})
 
@@ -46,13 +46,59 @@ func TestComponent(t *testing.T) {
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
 		assert.NoError(t, sut.Start(t.Context()))
-		assert.NoError(t, sut.Close())
+		assert.NoError(t, sut.Close(t.Context()))
 		assert.Equal(t, "*decorate_test.starterMock", sut.Name())
 	})
 
 	t.Run("call setup error", func(t *testing.T) {
 		var (
 			component = &setupperMock{}
+			sut       = decorate.New(component)
+		)
+
+		component.StartFunc = func(ctx context.Context) error {
+			return nil
+		}
+		component.SetupFunc = func() error {
+			return errors.New("error")
+		}
+
+		// act
+		sut = decorate.New(component)
+
+		// assert
+		assert.Error(t, sut.Setup(t.Context()))
+		assert.NoError(t, sut.Start(t.Context()))
+		assert.NoError(t, sut.Close(t.Context()))
+		assert.Equal(t, "*decorate_test.setupperMock", sut.Name())
+	})
+
+	t.Run("call setup no error", func(t *testing.T) {
+		var (
+			component = &setupperMock{}
+			sut       = decorate.New(component)
+		)
+
+		component.StartFunc = func(ctx context.Context) error {
+			return nil
+		}
+		component.SetupFunc = func() error {
+			return nil
+		}
+
+		// act
+		sut = decorate.New(component)
+
+		// assert
+		assert.NoError(t, sut.Setup(t.Context()))
+		assert.NoError(t, sut.Start(t.Context()))
+		assert.NoError(t, sut.Close(t.Context()))
+		assert.Equal(t, "*decorate_test.setupperMock", sut.Name())
+	})
+
+	t.Run("call setup context error", func(t *testing.T) {
+		var (
+			component = &contextSetupperMock{}
 			sut       = decorate.New(component)
 		)
 
@@ -69,13 +115,13 @@ func TestComponent(t *testing.T) {
 		// assert
 		assert.Error(t, sut.Setup(t.Context()))
 		assert.NoError(t, sut.Start(t.Context()))
-		assert.NoError(t, sut.Close())
-		assert.Equal(t, "*decorate_test.setupperMock", sut.Name())
+		assert.NoError(t, sut.Close(t.Context()))
+		assert.Equal(t, "*decorate_test.contextSetupperMock", sut.Name())
 	})
 
-	t.Run("call setup no error", func(t *testing.T) {
+	t.Run("call setup context no error", func(t *testing.T) {
 		var (
-			component = &setupperMock{}
+			component = &contextSetupperMock{}
 			sut       = decorate.New(component)
 		)
 
@@ -92,8 +138,8 @@ func TestComponent(t *testing.T) {
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
 		assert.NoError(t, sut.Start(t.Context()))
-		assert.NoError(t, sut.Close())
-		assert.Equal(t, "*decorate_test.setupperMock", sut.Name())
+		assert.NoError(t, sut.Close(t.Context()))
+		assert.Equal(t, "*decorate_test.contextSetupperMock", sut.Name())
 	})
 
 	t.Run("call close error", func(t *testing.T) {
@@ -115,7 +161,7 @@ func TestComponent(t *testing.T) {
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
 		assert.NoError(t, sut.Start(t.Context()))
-		assert.Error(t, sut.Close())
+		assert.Error(t, sut.Close(t.Context()))
 		assert.Equal(t, "*decorate_test.closerMock", sut.Name())
 	})
 
@@ -138,8 +184,54 @@ func TestComponent(t *testing.T) {
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
 		assert.NoError(t, sut.Start(t.Context()))
-		assert.NoError(t, sut.Close())
+		assert.NoError(t, sut.Close(t.Context()))
 		assert.Equal(t, "*decorate_test.closerMock", sut.Name())
+	})
+
+	t.Run("call close context error", func(t *testing.T) {
+		var (
+			component = &contextCloserMock{}
+			sut       = decorate.New(component)
+		)
+
+		component.StartFunc = func(ctx context.Context) error {
+			return nil
+		}
+		component.CloseFunc = func(ctx context.Context) error {
+			return errors.New("TEST")
+		}
+
+		// act
+		sut = decorate.New(component)
+
+		// assert
+		assert.NoError(t, sut.Setup(t.Context()))
+		assert.NoError(t, sut.Start(t.Context()))
+		assert.Error(t, sut.Close(t.Context()))
+		assert.Equal(t, "*decorate_test.contextCloserMock", sut.Name())
+	})
+
+	t.Run("call close context no error", func(t *testing.T) {
+		var (
+			component = &contextCloserMock{}
+			sut       = decorate.New(component)
+		)
+
+		component.StartFunc = func(ctx context.Context) error {
+			return nil
+		}
+		component.CloseFunc = func(ctx context.Context) error {
+			return nil
+		}
+
+		// act
+		sut = decorate.New(component)
+
+		// assert
+		assert.NoError(t, sut.Setup(t.Context()))
+		assert.NoError(t, sut.Start(t.Context()))
+		assert.NoError(t, sut.Close(t.Context()))
+		assert.Equal(t, "*decorate_test.contextCloserMock", sut.Name())
 	})
 
 	t.Run("call name", func(t *testing.T) {
@@ -161,7 +253,7 @@ func TestComponent(t *testing.T) {
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
 		assert.NoError(t, sut.Start(t.Context()))
-		assert.NoError(t, sut.Close())
+		assert.NoError(t, sut.Close(t.Context()))
 		assert.Equal(t, "TEST NAME", sut.Name())
 	})
 

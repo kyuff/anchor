@@ -76,7 +76,7 @@ func (mock *ComponentMock) StartCalls() []struct {
 //
 //		// make and configure a mocked anchor.fullComponent
 //		mockedfullComponent := &fullComponentMock{
-//			CloseFunc: func() error {
+//			CloseFunc: func(ctx context.Context) error {
 //				panic("mock out the Close method")
 //			},
 //			NameFunc: func() string {
@@ -96,7 +96,7 @@ func (mock *ComponentMock) StartCalls() []struct {
 //	}
 type fullComponentMock struct {
 	// CloseFunc mocks the Close method.
-	CloseFunc func() error
+	CloseFunc func(ctx context.Context) error
 
 	// NameFunc mocks the Name method.
 	NameFunc func() string
@@ -111,6 +111,8 @@ type fullComponentMock struct {
 	calls struct {
 		// Close holds details about calls to the Close method.
 		Close []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 		}
 		// Name holds details about calls to the Name method.
 		Name []struct {
@@ -133,16 +135,19 @@ type fullComponentMock struct {
 }
 
 // Close calls CloseFunc.
-func (mock *fullComponentMock) Close() error {
+func (mock *fullComponentMock) Close(ctx context.Context) error {
 	if mock.CloseFunc == nil {
 		panic("fullComponentMock.CloseFunc: method is nil but fullComponent.Close was just called")
 	}
 	callInfo := struct {
-	}{}
+		Ctx context.Context
+	}{
+		Ctx: ctx,
+	}
 	mock.lockClose.Lock()
 	mock.calls.Close = append(mock.calls.Close, callInfo)
 	mock.lockClose.Unlock()
-	return mock.CloseFunc()
+	return mock.CloseFunc(ctx)
 }
 
 // CloseCalls gets all the calls that were made to Close.
@@ -150,8 +155,10 @@ func (mock *fullComponentMock) Close() error {
 //
 //	len(mockedfullComponent.CloseCalls())
 func (mock *fullComponentMock) CloseCalls() []struct {
+	Ctx context.Context
 } {
 	var calls []struct {
+		Ctx context.Context
 	}
 	mock.lockClose.RLock()
 	calls = mock.calls.Close
