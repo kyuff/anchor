@@ -630,4 +630,34 @@ func TestAnchor(t *testing.T) {
 		assert.Equal(t, anchor.OK, code)
 		assert.Truef(t, called, "CancelFunc called")
 	})
+
+	t.Run("close when start blocks", func(t *testing.T) {
+		// arrange
+		var (
+			wg        = &sync.WaitGroup{}
+			component = newComponent("blocking component", func(c *fullComponentMock) {
+				c.StartFunc = func(ctx context.Context) error {
+					wg.Done()
+					// block eternal
+					<-t.Context().Done()
+					return nil
+				}
+			})
+			wire = newWire(t, wg)
+			sut  = anchor.New(wire,
+				anchor.WithCloseTimeout(time.Millisecond*200),
+			)
+		)
+
+		wg.Add(1)
+		sut.Add(component)
+
+		// act
+		code := sut.Run()
+
+		// assert
+		assert.Equal(t, anchor.Interrupted, code)
+		assertCalls(t, component, setupCalled, startCalled, closeCalled)
+	})
+
 }

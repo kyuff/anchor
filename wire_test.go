@@ -2,6 +2,8 @@ package anchor_test
 
 import (
 	"context"
+	"os"
+	"syscall"
 	"testing"
 
 	"github.com/kyuff/anchor"
@@ -31,21 +33,45 @@ func TestWire(t *testing.T) {
 	})
 
 	t.Run("SignalWire", func(t *testing.T) {
-		// arrange
-		var (
-			testCtx, testCancel = context.WithCancel(t.Context())
-			sut                 = anchor.DefaultSignalWire()
-		)
+		t.Run("exit when cancel func is called", func(t *testing.T) {
+			// arrange
+			var (
+				testCtx, testCancel = context.WithCancel(t.Context())
+				sut                 = anchor.DefaultSignalWire()
+			)
 
-		go func() {
-			testCancel()
-		}()
+			go func() {
+				testCancel()
+			}()
 
-		// acct
-		ctx, cancel := sut.Wire(testCtx)
+			// acct
+			ctx, cancel := sut.Wire(testCtx)
 
-		// assert
-		defer cancel()
-		<-ctx.Done()
+			// assert
+			defer cancel()
+			<-ctx.Done()
+		})
+
+		t.Run("exit when signal is made", func(t *testing.T) {
+			// arrange
+			var (
+				testCtx, testCancel = context.WithCancel(t.Context())
+				sut                 = anchor.SignalWire(syscall.SIGALRM)
+			)
+
+			go func() {
+				p, err := os.FindProcess(os.Getpid())
+				assert.NoError(t, err)
+				assert.NoError(t, p.Signal(syscall.SIGALRM))
+			}()
+
+			// acct
+			ctx, cancel := sut.Wire(testCtx)
+
+			// assert
+			defer cancel()
+			defer testCancel()
+			<-ctx.Done()
+		})
 	})
 }

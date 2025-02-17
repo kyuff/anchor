@@ -19,8 +19,11 @@ func (svc *ExampleService) Setup(ctx context.Context) error {
 
 func (svc *ExampleService) Start(ctx context.Context) error {
 	fmt.Printf("Starting component\n")
+	// A component can act in three different ways:
+	// 1. Block using the ctx as a signal for when to gracefully shut down
+	// 2. Block and implement the Close() method as a signal for graceful shutdown
+	// 3. Return a nil when there is no background work that needs to be done.
 	<-ctx.Done()
-	fmt.Printf("Context was cancelled\n")
 	return nil
 }
 
@@ -46,8 +49,6 @@ func ExampleAnchor() {
 	// Starting component
 	// Starting component
 	// Closing down the Anchor
-	// Context was cancelled
-	// Context was cancelled
 	// Closing component-b
 	// Closing component-a
 	// Exit code: 0

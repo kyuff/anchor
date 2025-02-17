@@ -19,6 +19,7 @@ func defaultOptions() *Config {
 		WithNoopLogger(),
 		WithContext(context.Background()),
 		WithSetupTimeout(0), // no timeout
+		WithCloseTimeout(10*time.Second),
 	)
 
 }

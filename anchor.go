@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sync/atomic"
+	"time"
 
 	"github.com/kyuff/anchor/internal/decorate"
 	"golang.org/x/sync/errgroup"
@@ -67,17 +68,24 @@ func (a *Anchor) Run() int {
 	// wire the anchor context
 	ctx, cancel := a.wire.Wire(a.cfg.rootCtx)
 	defer cancel()
-	defer a.closeAll()
 
 	if code := a.setupAll(ctx); code != OK {
-		return code
+		cancel()
+		a.exitCodeChan <- code
+	} else {
+		go a.startAll(ctx)
 	}
-
-	go a.startAll(ctx)
 
 	<-ctx.Done()
 
-	return <-a.exitCodeChan
+	a.closeAll()
+
+	select {
+	case code := <-a.exitCodeChan:
+		return code
+	case <-time.After(a.cfg.closeTimeout):
+		return Interrupted
+	}
 }
 
 func (a *Anchor) startAll(ctx context.Context) {
@@ -95,6 +103,7 @@ func (a *Anchor) startAll(ctx context.Context) {
 	}
 
 	a.exitCodeChan <- OK
+	close(a.exitCodeChan)
 }
 
 func (a *Anchor) startComponent(ctx context.Context, component fullComponent) (err error) {
