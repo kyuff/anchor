@@ -69,6 +69,15 @@ func TestOptions(t *testing.T) {
 				}
 			},
 		},
+		{
+			name:   "WithCloseTimeout",
+			option: WithCloseTimeout(time.Hour),
+			assert: func(t *testing.T, cfg *Config) {
+				if cfg.closeTimeout != time.Hour {
+					t.Error("expected close timeout")
+				}
+			},
+		},
 	}
 
 	for _, tc := range testCases {

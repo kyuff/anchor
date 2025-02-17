@@ -55,3 +55,12 @@ func WithSetupTimeout(timeout time.Duration) Option {
 		cfg.setupTimeout = timeout
 	}
 }
+
+// WithCloseTimeout is the combined time components have to perform a graceful shutdown.
+//
+// Default: No timeout
+func WithCloseTimeout(timeout time.Duration) Option {
+	return func(cfg *Config) {
+		cfg.closeTimeout = timeout
+	}
+}
