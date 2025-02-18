@@ -26,6 +26,12 @@ func Setup(name string, fn func() error) Component {
 	return decorate.Setup(name, fn)
 }
 
+// Make a component by it's setup func. A convenience when the Component is not needed
+// as a reference by other parts of the application, but just needs it's lifecycle handled.
+func Make[T Component](name string, setup func() (T, error)) Component {
+	return decorate.Make(name, setup)
+}
+
 // setupComponent allows a Component to create resources before Start
 type setupComponent interface {
 	Setup() error
