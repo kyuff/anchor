@@ -76,19 +76,6 @@ func New(component starter) *Component {
 	}
 }
 
-func Setup(name string, setup func() error) *Component {
-	return &Component{
-		name: func() string {
-			return name
-		},
-		start: func(ctx context.Context) error { return nil },
-		setup: func(_ context.Context) error {
-			return setup()
-		},
-		close: func(_ context.Context) error { return nil },
-	}
-}
-
 var _ fullComponent = (*Component)(nil)
 
 type Component struct {
