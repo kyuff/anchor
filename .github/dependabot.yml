@@ -4,12 +4,14 @@
 # https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 
 version: 2
-name: Dependabot
 updates:
   - package-ecosystem: "gomod" # See documentation for possible values
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
+      day: "sunday"
+      timezone: "Europe/Copenhagen"
+      time: "23:00"
 
   # Enable version updates for GitHub Actions
   - package-ecosystem: "github-actions"
@@ -18,3 +20,6 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "sunday"
+      timezone: "Europe/Copenhagen"
+      time: "23:00"
