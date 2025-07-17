@@ -20,6 +20,9 @@ import (
 //			NameFunc: func() string {
 //				panic("mock out the Name method")
 //			},
+//			ProbeFunc: func(ctx context.Context) error {
+//				panic("mock out the Probe method")
+//			},
 //			SetupFunc: func(ctx context.Context) error {
 //				panic("mock out the Setup method")
 //			},
@@ -39,6 +42,9 @@ type fullComponentMock struct {
 	// NameFunc mocks the Name method.
 	NameFunc func() string
 
+	// ProbeFunc mocks the Probe method.
+	ProbeFunc func(ctx context.Context) error
+
 	// SetupFunc mocks the Setup method.
 	SetupFunc func(ctx context.Context) error
 
@@ -55,6 +61,11 @@ type fullComponentMock struct {
 		// Name holds details about calls to the Name method.
 		Name []struct {
 		}
+		// Probe holds details about calls to the Probe method.
+		Probe []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+		}
 		// Setup holds details about calls to the Setup method.
 		Setup []struct {
 			// Ctx is the ctx argument value.
@@ -68,6 +79,7 @@ type fullComponentMock struct {
 	}
 	lockClose sync.RWMutex
 	lockName  sync.RWMutex
+	lockProbe sync.RWMutex
 	lockSetup sync.RWMutex
 	lockStart sync.RWMutex
 }
@@ -128,6 +140,38 @@ func (mock *fullComponentMock) NameCalls() []struct {
 	mock.lockName.RLock()
 	calls = mock.calls.Name
 	mock.lockName.RUnlock()
+	return calls
+}
+
+// Probe calls ProbeFunc.
+func (mock *fullComponentMock) Probe(ctx context.Context) error {
+	if mock.ProbeFunc == nil {
+		panic("fullComponentMock.ProbeFunc: method is nil but fullComponent.Probe was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+	}{
+		Ctx: ctx,
+	}
+	mock.lockProbe.Lock()
+	mock.calls.Probe = append(mock.calls.Probe, callInfo)
+	mock.lockProbe.Unlock()
+	return mock.ProbeFunc(ctx)
+}
+
+// ProbeCalls gets all the calls that were made to Probe.
+// Check the length with:
+//
+//	len(mockedfullComponent.ProbeCalls())
+func (mock *fullComponentMock) ProbeCalls() []struct {
+	Ctx context.Context
+} {
+	var calls []struct {
+		Ctx context.Context
+	}
+	mock.lockProbe.RLock()
+	calls = mock.calls.Probe
+	mock.lockProbe.RUnlock()
 	return calls
 }
 
@@ -656,6 +700,112 @@ func (mock *contextCloserMock) Start(ctx context.Context) error {
 //
 //	len(mockedcontextCloser.StartCalls())
 func (mock *contextCloserMock) StartCalls() []struct {
+	Ctx context.Context
+} {
+	var calls []struct {
+		Ctx context.Context
+	}
+	mock.lockStart.RLock()
+	calls = mock.calls.Start
+	mock.lockStart.RUnlock()
+	return calls
+}
+
+// contextProberMock is a mock implementation of decorate.contextProber.
+//
+//	func TestSomethingThatUsescontextProber(t *testing.T) {
+//
+//		// make and configure a mocked decorate.contextProber
+//		mockedcontextProber := &contextProberMock{
+//			ProbeFunc: func(ctx context.Context) error {
+//				panic("mock out the Probe method")
+//			},
+//			StartFunc: func(ctx context.Context) error {
+//				panic("mock out the Start method")
+//			},
+//		}
+//
+//		// use mockedcontextProber in code that requires decorate.contextProber
+//		// and then make assertions.
+//
+//	}
+type contextProberMock struct {
+	// ProbeFunc mocks the Probe method.
+	ProbeFunc func(ctx context.Context) error
+
+	// StartFunc mocks the Start method.
+	StartFunc func(ctx context.Context) error
+
+	// calls tracks calls to the methods.
+	calls struct {
+		// Probe holds details about calls to the Probe method.
+		Probe []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+		}
+		// Start holds details about calls to the Start method.
+		Start []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+		}
+	}
+	lockProbe sync.RWMutex
+	lockStart sync.RWMutex
+}
+
+// Probe calls ProbeFunc.
+func (mock *contextProberMock) Probe(ctx context.Context) error {
+	if mock.ProbeFunc == nil {
+		panic("contextProberMock.ProbeFunc: method is nil but contextProber.Probe was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+	}{
+		Ctx: ctx,
+	}
+	mock.lockProbe.Lock()
+	mock.calls.Probe = append(mock.calls.Probe, callInfo)
+	mock.lockProbe.Unlock()
+	return mock.ProbeFunc(ctx)
+}
+
+// ProbeCalls gets all the calls that were made to Probe.
+// Check the length with:
+//
+//	len(mockedcontextProber.ProbeCalls())
+func (mock *contextProberMock) ProbeCalls() []struct {
+	Ctx context.Context
+} {
+	var calls []struct {
+		Ctx context.Context
+	}
+	mock.lockProbe.RLock()
+	calls = mock.calls.Probe
+	mock.lockProbe.RUnlock()
+	return calls
+}
+
+// Start calls StartFunc.
+func (mock *contextProberMock) Start(ctx context.Context) error {
+	if mock.StartFunc == nil {
+		panic("contextProberMock.StartFunc: method is nil but contextProber.Start was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+	}{
+		Ctx: ctx,
+	}
+	mock.lockStart.Lock()
+	mock.calls.Start = append(mock.calls.Start, callInfo)
+	mock.lockStart.Unlock()
+	return mock.StartFunc(ctx)
+}
+
+// StartCalls gets all the calls that were made to Start.
+// Check the length with:
+//
+//	len(mockedcontextProber.StartCalls())
+func (mock *contextProberMock) StartCalls() []struct {
 	Ctx context.Context
 } {
 	var calls []struct {
