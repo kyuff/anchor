@@ -81,8 +81,8 @@ func TestOptions(t *testing.T) {
 			},
 		},
 		{
-			name: "WithReady",
-			option: WithReady(func(ctx context.Context) error {
+			name: "WithReadyCallback",
+			option: WithReadyCallback(func(ctx context.Context) error {
 				return errors.New("WithReadyError")
 			}),
 			assert: func(t *testing.T, cfg *Config) {

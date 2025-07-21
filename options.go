@@ -75,11 +75,11 @@ func WithCloseTimeout(timeout time.Duration) Option {
 	}
 }
 
-// WithReady sets a function that is called when all Components have been detected as started.
+// WithReadyCallback is called when all Components have been Setup and Started and succeeded any Probe.
 //
 // This is useful for enabling features that require all Components to be ready before they can be used.
 // If the function returns an error, the Anchor will fail to start and go into a shutdown state.
-func WithReady(fn func(ctx context.Context) error) Option {
+func WithReadyCallback(fn func(ctx context.Context) error) Option {
 	return func(cfg *Config) {
 		cfg.onReady = fn
 	}

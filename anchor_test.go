@@ -406,7 +406,7 @@ func TestAnchor(t *testing.T) {
 			}
 			wire = newWire(t, wg)
 			sut  = anchor.New(wire,
-				anchor.WithReady(func(ctx context.Context) error {
+				anchor.WithReadyCallback(func(ctx context.Context) error {
 					return errors.New("FAIL")
 				}),
 			)
@@ -860,7 +860,7 @@ func TestAnchor(t *testing.T) {
 				}
 			}
 			sut = anchor.New(wire,
-				anchor.WithReady(record("ready")),
+				anchor.WithReadyCallback(record("ready")),
 			)
 		)
 

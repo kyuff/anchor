@@ -24,7 +24,7 @@ func defaultOptions() *Config {
 		WithSetupTimeout(0), // no timeout
 		WithStartTimeout(0), // no timeout
 		WithCloseTimeout(10*time.Second),
-		WithReady(func(ctx context.Context) error { return nil }),
+		WithReadyCallback(func(ctx context.Context) error { return nil }),
 		WithLinearReadyCheckBackoff(time.Millisecond*100),
 	)
 
