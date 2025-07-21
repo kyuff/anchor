@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sync/atomic"
+	"time"
 
 	"github.com/kyuff/anchor/internal/decorate"
 	"golang.org/x/sync/errgroup"
@@ -109,7 +110,20 @@ func (a *Anchor) startAll(ctx context.Context) {
 		})
 	}
 
-	err := g.Wait()
+	err := a.probeAll(ctx)
+	if err != nil {
+		a.cfg.logger.ErrorfCtx(ctx, "[anchor] Ready check failed: %v", err)
+		a.signalClose(Internal)
+		return
+	}
+
+	err = a.cfg.onReady(ctx)
+	if err != nil {
+		a.signalClose(Internal)
+		return
+	}
+
+	err = g.Wait()
 	if err != nil {
 		a.signalClose(Internal)
 	} else {
@@ -134,6 +148,56 @@ func (a *Anchor) startComponent(ctx context.Context, component fullComponent) (e
 
 	a.cfg.logger.InfofCtx(ctx, "[anchor] Component exit: %q", component.Name())
 	return nil
+}
+
+func (a *Anchor) probeAll(ctx context.Context) error {
+	var cancel context.CancelFunc = func() {}
+	if a.cfg.startTimeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, a.cfg.startTimeout)
+	}
+
+	g, probeCtx := errgroup.WithContext(ctx)
+	defer cancel()
+
+	for _, component := range a.components {
+		g.Go(func() (err error) {
+			return a.probeComponent(probeCtx, component)
+		})
+	}
+
+	return g.Wait()
+}
+
+func (a *Anchor) probeComponent(ctx context.Context, component fullComponent) (err error) {
+	defer func() {
+		if panicErr := recover(); panicErr != nil {
+			a.cfg.logger.ErrorfCtx(ctx, "[anchor] Probe panic for %q: %v", component.Name(), panicErr)
+			err = errors.Join(err, fmt.Errorf("%s", panicErr))
+		}
+	}()
+
+	var attempts int
+	var backoff time.Duration
+	for {
+		attempts++
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			err := component.Probe(ctx)
+			if err == nil {
+				return nil
+			}
+
+			backoff, err = a.cfg.readyCheckBackoff(ctx, attempts)
+			if err != nil {
+				return err
+			}
+
+			time.Sleep(backoff)
+		}
+	}
+
 }
 
 func (a *Anchor) setupAll(ctx context.Context) int {

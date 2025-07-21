@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/kyuff/anchor/internal/assert"
 	"github.com/kyuff/anchor/internal/decorate"
 )
 
 func TestComponent(t *testing.T) {
+	var probeDelay = time.Millisecond * 100
 	t.Run("call start error", func(t *testing.T) {
 		var (
 			component = &starterMock{}
@@ -25,8 +27,11 @@ func TestComponent(t *testing.T) {
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
+		assert.Error(t, sut.Probe(t.Context()))
 		assert.Error(t, sut.Start(t.Context()))
-		assert.NoError(t, sut.Probe(t.Context()))
+		assert.NoErrorEventually(t, probeDelay, func() error {
+			return sut.Probe(t.Context())
+		})
 		assert.NoError(t, sut.Close(t.Context()))
 		assert.Equal(t, "*decorate_test.starterMock", sut.Name())
 	})
@@ -46,8 +51,11 @@ func TestComponent(t *testing.T) {
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
+		assert.Error(t, sut.Probe(t.Context()))
 		assert.NoError(t, sut.Start(t.Context()))
-		assert.NoError(t, sut.Probe(t.Context()))
+		assert.NoErrorEventually(t, probeDelay, func() error {
+			return sut.Probe(t.Context())
+		})
 		assert.NoError(t, sut.Close(t.Context()))
 		assert.Equal(t, "*decorate_test.starterMock", sut.Name())
 	})
@@ -86,7 +94,9 @@ func TestComponent(t *testing.T) {
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
 		assert.NoError(t, sut.Start(t.Context()))
-		assert.NoError(t, sut.Probe(t.Context()))
+		assert.NoErrorEventually(t, probeDelay, func() error {
+			return sut.Probe(t.Context())
+		})
 	})
 
 	t.Run("call setup error", func(t *testing.T) {
@@ -108,7 +118,9 @@ func TestComponent(t *testing.T) {
 		// assert
 		assert.Error(t, sut.Setup(t.Context()))
 		assert.NoError(t, sut.Start(t.Context()))
-		assert.NoError(t, sut.Probe(t.Context()))
+		assert.NoErrorEventually(t, probeDelay, func() error {
+			return sut.Probe(t.Context())
+		})
 		assert.NoError(t, sut.Close(t.Context()))
 		assert.Equal(t, "*decorate_test.setupperMock", sut.Name())
 	})
@@ -132,7 +144,9 @@ func TestComponent(t *testing.T) {
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
 		assert.NoError(t, sut.Start(t.Context()))
-		assert.NoError(t, sut.Probe(t.Context()))
+		assert.NoErrorEventually(t, probeDelay, func() error {
+			return sut.Probe(t.Context())
+		})
 		assert.NoError(t, sut.Close(t.Context()))
 		assert.Equal(t, "*decorate_test.setupperMock", sut.Name())
 	})
@@ -180,7 +194,9 @@ func TestComponent(t *testing.T) {
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
 		assert.NoError(t, sut.Start(t.Context()))
-		assert.NoError(t, sut.Probe(t.Context()))
+		assert.NoErrorEventually(t, probeDelay, func() error {
+			return sut.Probe(t.Context())
+		})
 		assert.NoError(t, sut.Close(t.Context()))
 		assert.Equal(t, "*decorate_test.contextProberMock", sut.Name())
 	})
@@ -204,7 +220,9 @@ func TestComponent(t *testing.T) {
 		// assert
 		assert.Error(t, sut.Setup(t.Context()))
 		assert.NoError(t, sut.Start(t.Context()))
-		assert.NoError(t, sut.Probe(t.Context()))
+		assert.NoErrorEventually(t, probeDelay, func() error {
+			return sut.Probe(t.Context())
+		})
 		assert.NoError(t, sut.Close(t.Context()))
 		assert.Equal(t, "*decorate_test.contextSetupperMock", sut.Name())
 	})
@@ -227,8 +245,11 @@ func TestComponent(t *testing.T) {
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
+		assert.Error(t, sut.Probe(t.Context()))
 		assert.NoError(t, sut.Start(t.Context()))
-		assert.NoError(t, sut.Probe(t.Context()))
+		assert.NoErrorEventually(t, probeDelay, func() error {
+			return sut.Probe(t.Context())
+		})
 		assert.NoError(t, sut.Close(t.Context()))
 		assert.Equal(t, "*decorate_test.contextSetupperMock", sut.Name())
 	})
@@ -251,8 +272,8 @@ func TestComponent(t *testing.T) {
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
+		assert.Error(t, sut.Probe(t.Context()))
 		assert.NoError(t, sut.Start(t.Context()))
-		assert.NoError(t, sut.Probe(t.Context()))
 		assert.Error(t, sut.Close(t.Context()))
 		assert.Equal(t, "*decorate_test.closerMock", sut.Name())
 	})
@@ -275,8 +296,8 @@ func TestComponent(t *testing.T) {
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
+		assert.Error(t, sut.Probe(t.Context()))
 		assert.NoError(t, sut.Start(t.Context()))
-		assert.NoError(t, sut.Probe(t.Context()))
 		assert.NoError(t, sut.Close(t.Context()))
 		assert.Equal(t, "*decorate_test.closerMock", sut.Name())
 	})
@@ -299,8 +320,8 @@ func TestComponent(t *testing.T) {
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
+		assert.Error(t, sut.Probe(t.Context()))
 		assert.NoError(t, sut.Start(t.Context()))
-		assert.NoError(t, sut.Probe(t.Context()))
 		assert.Error(t, sut.Close(t.Context()))
 		assert.Equal(t, "*decorate_test.contextCloserMock", sut.Name())
 	})
@@ -323,8 +344,8 @@ func TestComponent(t *testing.T) {
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
+		assert.Error(t, sut.Probe(t.Context()))
 		assert.NoError(t, sut.Start(t.Context()))
-		assert.NoError(t, sut.Probe(t.Context()))
 		assert.NoError(t, sut.Close(t.Context()))
 		assert.Equal(t, "*decorate_test.contextCloserMock", sut.Name())
 	})
@@ -347,8 +368,8 @@ func TestComponent(t *testing.T) {
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
+		assert.Error(t, sut.Probe(t.Context()))
 		assert.NoError(t, sut.Start(t.Context()))
-		assert.NoError(t, sut.Probe(t.Context()))
 		assert.NoError(t, sut.Close(t.Context()))
 		assert.Equal(t, "TEST NAME", sut.Name())
 	})

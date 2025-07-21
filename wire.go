@@ -12,6 +12,7 @@ import (
 type Wire interface {
 	Wire(ctx context.Context) (context.Context, context.CancelFunc)
 }
+
 type WireFunc func(ctx context.Context) (context.Context, context.CancelFunc)
 
 func (fn WireFunc) Wire(ctx context.Context) (context.Context, context.CancelFunc) {

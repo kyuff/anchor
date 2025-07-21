@@ -8,9 +8,12 @@ import (
 type Config struct {
 	logger Logger
 	// rootCtx is used to derive the setup, start and close contexts.
-	rootCtx      context.Context
-	setupTimeout time.Duration
-	closeTimeout time.Duration
+	rootCtx           context.Context
+	setupTimeout      time.Duration
+	startTimeout      time.Duration
+	closeTimeout      time.Duration
+	onReady           func(ctx context.Context) error
+	readyCheckBackoff func(ctx context.Context, attempt int) (time.Duration, error)
 }
 
 func defaultOptions() *Config {
@@ -19,7 +22,10 @@ func defaultOptions() *Config {
 		WithNoopLogger(),
 		WithContext(context.Background()),
 		WithSetupTimeout(0), // no timeout
+		WithStartTimeout(0), // no timeout
 		WithCloseTimeout(10*time.Second),
+		WithReady(func(ctx context.Context) error { return nil }),
+		WithLinearReadyCheckBackoff(time.Millisecond*100),
 	)
 
 }

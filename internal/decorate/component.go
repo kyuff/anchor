@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync/atomic"
+	"time"
 )
 
 type setupper interface {
@@ -48,21 +49,33 @@ type fullComponent interface {
 	namer
 }
 
+var delay = (time.Millisecond * 15).Milliseconds()
+
+func probeIsReady(startTime int64) bool {
+	var (
+		now       = time.Now().UnixMilli()
+		readyTime = startTime + delay
+	)
+
+	return startTime > 0 && readyTime < now
+}
+
 func New(component starter) *Component {
-	var started atomic.Bool
+	var startTime atomic.Int64
 	var c *Component
 	c = &Component{
 		start: func(ctx context.Context) error {
-			started.Store(true)
+			startTime.Store(time.Now().UnixMilli())
 			return component.Start(ctx)
 		},
 		probe: func() func(ctx context.Context) error {
-			if c, ok := component.(contextProber); ok {
-				return c.Probe
-			}
 			return func(ctx context.Context) error {
-				if !started.Load() {
+				if !probeIsReady(startTime.Load()) {
 					return fmt.Errorf("component %s is not started yet", c.Name())
+				}
+
+				if c, ok := component.(contextProber); ok {
+					return c.Probe(ctx)
 				}
 				return nil
 			}

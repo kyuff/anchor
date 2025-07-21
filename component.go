@@ -43,6 +43,13 @@ type contextSetupComponent interface {
 	Setup(ctx context.Context) error
 }
 
+// contextProbeComponent allows a Component to probe its readiness.
+// Probe is called after Start and before Close.
+// It will continue to be called until it returns nil or the Context is done.
+type contextProbeComponent interface {
+	Probe(ctx context.Context) error
+}
+
 // closeComponent is a standard io.Closer to free up resources on a graceful shutdown.
 type closeComponent interface {
 	Close() error
@@ -60,6 +67,7 @@ type namedComponent interface {
 type fullComponent interface {
 	contextSetupComponent
 	Component
+	contextProbeComponent
 	contextCloseComponent
 	namedComponent
 }
