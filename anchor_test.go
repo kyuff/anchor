@@ -90,6 +90,14 @@ func TestAnchor(t *testing.T) {
 				}
 			}
 		}
+		sleepOnProbe = func(duration time.Duration) func(c *fullComponentMock) {
+			return func(c *fullComponentMock) {
+				c.ProbeFunc = func(ctx context.Context) error {
+					time.Sleep(duration)
+					return nil
+				}
+			}
+		}
 		blockOnStart = func(duration time.Duration) func(c *fullComponentMock) {
 			return func(c *fullComponentMock) {
 				c.StartFunc = func(ctx context.Context) error {
@@ -113,6 +121,13 @@ func TestAnchor(t *testing.T) {
 			return func(c *fullComponentMock) {
 				c.CloseFunc = func(ctx context.Context) error {
 					panic(msg)
+				}
+			}
+		}
+		panicOnProbe = func() func(c *fullComponentMock) {
+			return func(c *fullComponentMock) {
+				c.ProbeFunc = func(ctx context.Context) error {
+					panic("TEST")
 				}
 			}
 		}
@@ -394,8 +409,96 @@ func TestAnchor(t *testing.T) {
 				anchor.WithReady(func(ctx context.Context) error {
 					return errors.New("FAIL")
 				}),
+			)
+		)
+
+		for _, component := range components {
+			wg.Add(1)
+			sut.Add(component)
+		}
+
+		// act
+		code := sut.Run()
+
+		// assert
+		assert.Equal(t, anchor.Internal, code)
+		assertCalls(t, components[0], setupCalled, startCalled, closeCalled)
+		assertCalls(t, components[1], setupCalled, startCalled, closeCalled)
+		assertCalls(t, components[2], setupCalled, startCalled, closeCalled)
+	})
+
+	t.Run("break on ready check backoff error", func(t *testing.T) {
+		// arrange
+		var (
+			wg         = &sync.WaitGroup{}
+			components = []*fullComponentMock{
+				newComponent("c-0", blockOnStart(time.Second)),
+				newComponent("c-1", blockOnStart(time.Second)),
+				newComponent("c-2", blockOnStart(time.Second)),
+			}
+			wire = newWire(t, wg)
+			sut  = anchor.New(wire,
+				anchor.WithReadyCheckBackoff(func(ctx context.Context, attempt int) (time.Duration, error) {
+					return 0, errors.New("FAIL")
+				}),
 				anchor.WithDefaultSlog(),
 			)
+		)
+
+		for _, component := range components {
+			wg.Add(1)
+			sut.Add(component)
+		}
+
+		// act
+		code := sut.Run()
+
+		// assert
+		assert.Equal(t, anchor.Internal, code)
+		assertCalls(t, components[0], setupCalled, startCalled, closeCalled)
+		assertCalls(t, components[1], setupCalled, startCalled, closeCalled)
+		assertCalls(t, components[2], setupCalled, startCalled, closeCalled)
+	})
+
+	t.Run("break on probe panic", func(t *testing.T) {
+		// arrange
+		var (
+			wg         = &sync.WaitGroup{}
+			components = []*fullComponentMock{
+				newComponent("c-0", blockOnStart(time.Second)),
+				newComponent("c-1", blockOnStart(time.Second), panicOnProbe()),
+				newComponent("c-2", blockOnStart(time.Second)),
+			}
+			wire = newWire(t, wg)
+			sut  = anchor.New(wire)
+		)
+
+		for _, component := range components {
+			wg.Add(1)
+			sut.Add(component)
+		}
+
+		// act
+		code := sut.Run()
+
+		// assert
+		assert.Equal(t, anchor.Internal, code)
+		assertCalls(t, components[0], setupCalled, startCalled, closeCalled)
+		assertCalls(t, components[1], setupCalled, startCalled, closeCalled)
+		assertCalls(t, components[2], setupCalled, startCalled, closeCalled)
+	})
+
+	t.Run("break on probe timeout", func(t *testing.T) {
+		// arrange
+		var (
+			wg         = &sync.WaitGroup{}
+			components = []*fullComponentMock{
+				newComponent("c-0", blockOnStart(time.Second)),
+				newComponent("c-1", blockOnStart(time.Second), sleepOnProbe(time.Millisecond*200)),
+				newComponent("c-2", blockOnStart(time.Second)),
+			}
+			wire = newWire(t, wg)
+			sut  = anchor.New(wire, anchor.WithStartTimeout(time.Millisecond*50))
 		)
 
 		for _, component := range components {
