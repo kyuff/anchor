@@ -10,6 +10,7 @@ func Equal[T comparable](t *testing.T, expected, got T) bool {
 	t.Helper()
 	return Equalf(t, expected, got, "Items was not equal")
 }
+
 func Equalf[T comparable](t *testing.T, expected, got T, format string, args ...any) bool {
 	t.Helper()
 	if expected != got {
@@ -123,4 +124,14 @@ func NoErrorEventually(t *testing.T, duration time.Duration, fn func() error) bo
 	t.Logf("Unexpected error: %s", lastErr)
 	t.Fail()
 	return false
+}
+
+func NotNil(t *testing.T, got any) bool {
+	t.Helper()
+	if got == nil {
+		t.Logf("Expected non-nil value, but got nil")
+		t.Fail()
+		return false
+	}
+	return true
 }
