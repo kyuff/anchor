@@ -441,7 +441,6 @@ func TestAnchor(t *testing.T) {
 				anchor.WithReadyCheckBackoff(func(ctx context.Context, attempt int) (time.Duration, error) {
 					return 0, errors.New("FAIL")
 				}),
-				anchor.WithDefaultSlog(),
 			)
 		)
 
@@ -610,7 +609,7 @@ func TestAnchor(t *testing.T) {
 				newComponent("c-2", doneOnStart(wg)),
 			}
 			wire = newWire(t, wg)
-			sut  = anchor.New(wire, anchor.WithDefaultSlog())
+			sut  = anchor.New(wire)
 		)
 
 		for _, component := range components {
@@ -861,7 +860,6 @@ func TestAnchor(t *testing.T) {
 				}
 			}
 			sut = anchor.New(wire,
-				anchor.WithDefaultSlog(),
 				anchor.WithReady(record("ready")),
 			)
 		)

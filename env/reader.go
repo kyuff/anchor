@@ -40,7 +40,5 @@ func readFile(fileName string) (map[string]string, error) {
 		kv[key] = strings.TrimSpace(i[1])
 	}
 
-	fmt.Printf("Values: \n %#v\n", kv)
-
 	return kv, nil
 }
