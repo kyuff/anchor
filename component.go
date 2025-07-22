@@ -32,6 +32,17 @@ func Make[T Component](name string, setup func() (T, error)) Component {
 	return decorate.Make(name, setup)
 }
 
+func MakeProbe[T Component](name string, setup func() (T, error), probe func(ctx context.Context) error) Component {
+	return decorate.MakeProbe(name, setup, probe)
+}
+
+// prober is an interface that allows a Component to probe its readiness.
+type prober interface {
+	Probe(ctx context.Context) error
+}
+
+type proberFunc func(ctx context.Context) error
+
 // setupComponent allows a Component to create resources before Start
 type setupComponent interface {
 	Setup() error
