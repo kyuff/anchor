@@ -12,5 +12,6 @@ func Setup(name string, setup func() error) *Component {
 			return setup()
 		},
 		close: func(_ context.Context) error { return nil },
+		probe: func(ctx context.Context) error { return nil },
 	}
 }
