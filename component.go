@@ -32,6 +32,9 @@ func Make[T Component](name string, setup func() (T, error)) Component {
 	return decorate.Make(name, setup)
 }
 
+// MakeProbe a component by it's setup and probe functions. A convenience when the Component is not needed
+// as a reference by other parts of the application, but just needs it's lifecycle handled.
+// The probe function is called after Start to check if the Component is ready.
 func MakeProbe[T Component](name string, setup func() (T, error), probe func(ctx context.Context) error) Component {
 	return decorate.MakeProbe(name, setup, probe)
 }
