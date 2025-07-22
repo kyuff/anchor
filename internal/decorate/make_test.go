@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/kyuff/anchor/internal/assert"
 	"github.com/kyuff/anchor/internal/decorate"
@@ -233,4 +234,63 @@ func TestMake(t *testing.T) {
 		assert.Truef(t, closeInner, "closeInner")
 	})
 
+	t.Run("call probe on contextProber", func(t *testing.T) {
+		// arrange
+		var (
+			setup      = false
+			probeInner = false
+		)
+
+		// act
+		sut := decorate.Make("TEST NAME", func() (*contextProberMock, error) {
+			setup = true
+			return &contextProberMock{
+				StartFunc: func(ctx context.Context) error {
+					return nil
+				},
+				ProbeFunc: func(ctx context.Context) error {
+					probeInner = true
+					return nil
+				},
+			}, nil
+		})
+
+		// assert
+		assert.NoError(t, sut.Setup(t.Context()))
+		assert.NoError(t, sut.Start(t.Context()))
+		assert.NoErrorEventually(t, time.Second, func() error {
+			return sut.Probe(t.Context())
+		})
+		assert.NoError(t, sut.Close(t.Context()))
+		assert.Equal(t, "TEST NAME", sut.Name())
+		assert.Truef(t, setup, "setup")
+		assert.Truef(t, probeInner, "probeInner")
+	})
+
+	t.Run("call probe success", func(t *testing.T) {
+		// arrange
+		var (
+			setup = false
+		)
+
+		// act
+		sut := decorate.Make("TEST NAME", func() (*starterMock, error) {
+			setup = true
+			return &starterMock{
+				StartFunc: func(ctx context.Context) error {
+					return nil
+				},
+			}, nil
+		})
+
+		// assert
+		assert.NoError(t, sut.Setup(t.Context()))
+		assert.NoError(t, sut.Start(t.Context()))
+		assert.NoErrorEventually(t, time.Second, func() error {
+			return sut.Probe(t.Context())
+		})
+		assert.NoError(t, sut.Close(t.Context()))
+		assert.Equal(t, "TEST NAME", sut.Name())
+		assert.Truef(t, setup, "setup")
+	})
 }

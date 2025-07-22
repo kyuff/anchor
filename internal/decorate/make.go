@@ -4,12 +4,19 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"sync/atomic"
+	"time"
 )
+
+func MakeProber[T starter](name string, setup func() (T, error)) *Component {
+	return nil
+}
 
 func Make[T starter](name string, setup func() (T, error)) *Component {
 	var (
-		inner starter
-		err   error
+		startTime atomic.Int64
+		inner     starter
+		err       error
 	)
 	return &Component{
 		name: func() string {
@@ -68,8 +75,21 @@ func Make[T starter](name string, setup func() (T, error)) *Component {
 				return fmt.Errorf("nil make component")
 			}
 
+			startTime.Store(time.Now().UnixMilli())
 			return inner.Start(ctx)
 		},
+		probe: func() func(ctx context.Context) error {
+			return func(ctx context.Context) error {
+				if !probeIsReady(startTime.Load()) {
+					return fmt.Errorf("component %s is not started yet", name)
+				}
+
+				if c, ok := inner.(contextProber); ok {
+					return c.Probe(ctx)
+				}
+				return nil
+			}
+		}(),
 	}
 }
 
