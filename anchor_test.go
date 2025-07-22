@@ -3,6 +3,7 @@ package anchor_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -89,6 +90,26 @@ func TestAnchor(t *testing.T) {
 				}
 			}
 		}
+		sleepOnProbe = func(duration time.Duration) func(c *fullComponentMock) {
+			return func(c *fullComponentMock) {
+				c.ProbeFunc = func(ctx context.Context) error {
+					time.Sleep(duration)
+					return nil
+				}
+			}
+		}
+		blockOnStart = func(duration time.Duration) func(c *fullComponentMock) {
+			return func(c *fullComponentMock) {
+				c.StartFunc = func(ctx context.Context) error {
+					select {
+					case <-ctx.Done():
+						return ctx.Err()
+					case <-time.After(duration):
+						return nil
+					}
+				}
+			}
+		}
 		errorOnClose = func(err error) func(c *fullComponentMock) {
 			return func(c *fullComponentMock) {
 				c.CloseFunc = func(ctx context.Context) error {
@@ -100,6 +121,13 @@ func TestAnchor(t *testing.T) {
 			return func(c *fullComponentMock) {
 				c.CloseFunc = func(ctx context.Context) error {
 					panic(msg)
+				}
+			}
+		}
+		panicOnProbe = func() func(c *fullComponentMock) {
+			return func(c *fullComponentMock) {
+				c.ProbeFunc = func(ctx context.Context) error {
+					panic("TEST")
 				}
 			}
 		}
@@ -117,6 +145,7 @@ func TestAnchor(t *testing.T) {
 				StartFunc: func(ctx context.Context) error {
 					return nil
 				},
+				ProbeFunc: func(ctx context.Context) error { return nil },
 			}
 
 			for _, mod := range mods {
@@ -366,6 +395,126 @@ func TestAnchor(t *testing.T) {
 		assertCalls(t, components[2], setupSkipped, startSkipped, closeSkipped)
 	})
 
+	t.Run("break on ready check notification error", func(t *testing.T) {
+		// arrange
+		var (
+			wg         = &sync.WaitGroup{}
+			components = []*fullComponentMock{
+				newComponent("c-0", blockOnStart(time.Second)),
+				newComponent("c-1", blockOnStart(time.Second)),
+				newComponent("c-2", blockOnStart(time.Second)),
+			}
+			wire = newWire(t, wg)
+			sut  = anchor.New(wire,
+				anchor.WithReadyCallback(func(ctx context.Context) error {
+					return errors.New("FAIL")
+				}),
+			)
+		)
+
+		for _, component := range components {
+			wg.Add(1)
+			sut.Add(component)
+		}
+
+		// act
+		code := sut.Run()
+
+		// assert
+		assert.Equal(t, anchor.Internal, code)
+		assertCalls(t, components[0], setupCalled, startCalled, closeCalled)
+		assertCalls(t, components[1], setupCalled, startCalled, closeCalled)
+		assertCalls(t, components[2], setupCalled, startCalled, closeCalled)
+	})
+
+	t.Run("break on ready check backoff error", func(t *testing.T) {
+		// arrange
+		var (
+			wg         = &sync.WaitGroup{}
+			components = []*fullComponentMock{
+				newComponent("c-0", blockOnStart(time.Second)),
+				newComponent("c-1", blockOnStart(time.Second)),
+				newComponent("c-2", blockOnStart(time.Second)),
+			}
+			wire = newWire(t, wg)
+			sut  = anchor.New(wire,
+				anchor.WithReadyCheckBackoff(func(ctx context.Context, attempt int) (time.Duration, error) {
+					return 0, errors.New("FAIL")
+				}),
+			)
+		)
+
+		for _, component := range components {
+			wg.Add(1)
+			sut.Add(component)
+		}
+
+		// act
+		code := sut.Run()
+
+		// assert
+		assert.Equal(t, anchor.Internal, code)
+		assertCalls(t, components[0], setupCalled, startCalled, closeCalled)
+		assertCalls(t, components[1], setupCalled, startCalled, closeCalled)
+		assertCalls(t, components[2], setupCalled, startCalled, closeCalled)
+	})
+
+	t.Run("break on probe panic", func(t *testing.T) {
+		// arrange
+		var (
+			wg         = &sync.WaitGroup{}
+			components = []*fullComponentMock{
+				newComponent("c-0", blockOnStart(time.Second)),
+				newComponent("c-1", blockOnStart(time.Second), panicOnProbe()),
+				newComponent("c-2", blockOnStart(time.Second)),
+			}
+			wire = newWire(t, wg)
+			sut  = anchor.New(wire)
+		)
+
+		for _, component := range components {
+			wg.Add(1)
+			sut.Add(component)
+		}
+
+		// act
+		code := sut.Run()
+
+		// assert
+		assert.Equal(t, anchor.Internal, code)
+		assertCalls(t, components[0], setupCalled, startCalled, closeCalled)
+		assertCalls(t, components[1], setupCalled, startCalled, closeCalled)
+		assertCalls(t, components[2], setupCalled, startCalled, closeCalled)
+	})
+
+	t.Run("break on probe timeout", func(t *testing.T) {
+		// arrange
+		var (
+			wg         = &sync.WaitGroup{}
+			components = []*fullComponentMock{
+				newComponent("c-0", blockOnStart(time.Second)),
+				newComponent("c-1", blockOnStart(time.Second), sleepOnProbe(time.Millisecond*200)),
+				newComponent("c-2", blockOnStart(time.Second)),
+			}
+			wire = newWire(t, wg)
+			sut  = anchor.New(wire, anchor.WithStartTimeout(time.Millisecond*50))
+		)
+
+		for _, component := range components {
+			wg.Add(1)
+			sut.Add(component)
+		}
+
+		// act
+		code := sut.Run()
+
+		// assert
+		assert.Equal(t, anchor.Internal, code)
+		assertCalls(t, components[0], setupCalled, startCalled, closeCalled)
+		assertCalls(t, components[1], setupCalled, startCalled, closeCalled)
+		assertCalls(t, components[2], setupCalled, startCalled, closeCalled)
+	})
+
 	t.Run("no break on close error", func(t *testing.T) {
 		// arrange
 		var (
@@ -460,7 +609,7 @@ func TestAnchor(t *testing.T) {
 				newComponent("c-2", doneOnStart(wg)),
 			}
 			wire = newWire(t, wg)
-			sut  = anchor.New(wire, anchor.WithDefaultSlog())
+			sut  = anchor.New(wire)
 		)
 
 		for _, component := range components {
@@ -690,6 +839,49 @@ func TestAnchor(t *testing.T) {
 		// assert
 		assert.Equal(t, anchor.Interrupted, code)
 		assertCalls(t, component, setupCalled, startCalled, closeCalled)
+	})
+
+	t.Run("call ready after probes", func(t *testing.T) {
+		// arrange
+		var (
+			wg         = &sync.WaitGroup{}
+			mu         sync.Mutex
+			calls      []string
+			wire       = newWire(t, wg)
+			components = []*fullComponentMock{
+				newComponent("c-0", doneOnStart(wg)),
+			}
+			record = func(action string) func(_ context.Context) error {
+				return func(_ context.Context) error {
+					mu.Lock()
+					defer mu.Unlock()
+					calls = append(calls, action)
+					return nil
+				}
+			}
+			sut = anchor.New(wire,
+				anchor.WithReadyCallback(record("ready")),
+			)
+		)
+
+		for _, component := range components {
+			wg.Add(1)
+			sut.Add(component)
+			component.SetupFunc = record("setup")
+			component.StartFunc = record("start")
+			component.CloseFunc = record("close")
+			component.ProbeFunc = func(ctx context.Context) error {
+				return nil
+			}
+		}
+
+		// act
+		code := sut.Run()
+
+		// assert
+		assert.Equal(t, anchor.OK, code)
+		fmt.Printf("%#v\n", calls)
+		assert.EqualSlice(t, []string{"setup", "start", "ready", "close"}, calls)
 	})
 
 }

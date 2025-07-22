@@ -56,6 +56,16 @@ func WithSetupTimeout(timeout time.Duration) Option {
 	}
 }
 
+// WithStartTimeout fails an Anchor if all Components have not been Started within
+// the timeout provided.
+//
+// Default: No timeout
+func WithStartTimeout(timeout time.Duration) Option {
+	return func(cfg *Config) {
+		cfg.startTimeout = timeout
+	}
+}
+
 // WithCloseTimeout is the combined time components have to perform a graceful shutdown.
 //
 // Default: No timeout
@@ -63,4 +73,41 @@ func WithCloseTimeout(timeout time.Duration) Option {
 	return func(cfg *Config) {
 		cfg.closeTimeout = timeout
 	}
+}
+
+// WithReadyCallback is called when all Components have been Setup and Started and succeeded any Probe.
+//
+// This is useful for enabling features that require all Components to be ready before they can be used.
+// If the function returns an error, the Anchor will fail to start and go into a shutdown state.
+func WithReadyCallback(fn func(ctx context.Context) error) Option {
+	return func(cfg *Config) {
+		cfg.onReady = fn
+	}
+}
+
+func WithReadyCheckBackoff(fn func(ctx context.Context, attempt int) (time.Duration, error)) Option {
+	return func(cfg *Config) {
+		cfg.readyCheckBackoff = fn
+	}
+}
+
+// WithFixedReadyCheckBackoff waits a fixed amount of time between retries.
+func WithFixedReadyCheckBackoff(d time.Duration) Option {
+	return WithReadyCheckBackoff(func(_ context.Context, _ int) (time.Duration, error) {
+		return d, nil
+	})
+}
+
+// WithLinearReadyCheckBackoff increases the wait time linearly with each retry.
+func WithLinearReadyCheckBackoff(increment time.Duration) Option {
+	return WithReadyCheckBackoff(func(_ context.Context, retries int) (time.Duration, error) {
+		return increment * time.Duration(retries), nil
+	})
+}
+
+// WithExponentialReadyCheckBackoff doubles the wait time with each retry.
+func WithExponentialReadyCheckBackoff(base time.Duration) Option {
+	return WithReadyCheckBackoff(func(_ context.Context, retries int) (time.Duration, error) {
+		return base * time.Duration(1<<retries), nil
+	})
 }

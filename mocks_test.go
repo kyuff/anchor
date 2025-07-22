@@ -82,6 +82,9 @@ func (mock *ComponentMock) StartCalls() []struct {
 //			NameFunc: func() string {
 //				panic("mock out the Name method")
 //			},
+//			ProbeFunc: func(ctx context.Context) error {
+//				panic("mock out the Probe method")
+//			},
 //			SetupFunc: func(ctx context.Context) error {
 //				panic("mock out the Setup method")
 //			},
@@ -101,6 +104,9 @@ type fullComponentMock struct {
 	// NameFunc mocks the Name method.
 	NameFunc func() string
 
+	// ProbeFunc mocks the Probe method.
+	ProbeFunc func(ctx context.Context) error
+
 	// SetupFunc mocks the Setup method.
 	SetupFunc func(ctx context.Context) error
 
@@ -117,6 +123,11 @@ type fullComponentMock struct {
 		// Name holds details about calls to the Name method.
 		Name []struct {
 		}
+		// Probe holds details about calls to the Probe method.
+		Probe []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+		}
 		// Setup holds details about calls to the Setup method.
 		Setup []struct {
 			// Ctx is the ctx argument value.
@@ -130,6 +141,7 @@ type fullComponentMock struct {
 	}
 	lockClose sync.RWMutex
 	lockName  sync.RWMutex
+	lockProbe sync.RWMutex
 	lockSetup sync.RWMutex
 	lockStart sync.RWMutex
 }
@@ -190,6 +202,38 @@ func (mock *fullComponentMock) NameCalls() []struct {
 	mock.lockName.RLock()
 	calls = mock.calls.Name
 	mock.lockName.RUnlock()
+	return calls
+}
+
+// Probe calls ProbeFunc.
+func (mock *fullComponentMock) Probe(ctx context.Context) error {
+	if mock.ProbeFunc == nil {
+		panic("fullComponentMock.ProbeFunc: method is nil but fullComponent.Probe was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+	}{
+		Ctx: ctx,
+	}
+	mock.lockProbe.Lock()
+	mock.calls.Probe = append(mock.calls.Probe, callInfo)
+	mock.lockProbe.Unlock()
+	return mock.ProbeFunc(ctx)
+}
+
+// ProbeCalls gets all the calls that were made to Probe.
+// Check the length with:
+//
+//	len(mockedfullComponent.ProbeCalls())
+func (mock *fullComponentMock) ProbeCalls() []struct {
+	Ctx context.Context
+} {
+	var calls []struct {
+		Ctx context.Context
+	}
+	mock.lockProbe.RLock()
+	calls = mock.calls.Probe
+	mock.lockProbe.RUnlock()
 	return calls
 }
 

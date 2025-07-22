@@ -10,11 +10,19 @@ import (
 	"github.com/kyuff/anchor/internal/decorate"
 )
 
-func TestMake(t *testing.T) {
+func TestMakeProbe(t *testing.T) {
+
+	var (
+		noopProbe = func() func(context.Context) error {
+			return func(ctx context.Context) error {
+				return nil
+			}
+		}
+	)
 
 	t.Run("fail on nil setup", func(t *testing.T) {
 		// act
-		sut := decorate.Make[*starterMock]("TEST NAME", nil)
+		sut := decorate.MakeProbe[*starterMock]("TEST NAME", nil, noopProbe())
 
 		// assert
 		assert.Error(t, sut.Setup(t.Context()))
@@ -29,10 +37,10 @@ func TestMake(t *testing.T) {
 		)
 
 		// act
-		sut := decorate.Make("TEST NAME", func() (*starterMock, error) {
+		sut := decorate.MakeProbe("TEST NAME", func() (*starterMock, error) {
 			setup = true
 			return nil, nil
-		})
+		}, noopProbe())
 
 		// assert
 		assert.Error(t, sut.Setup(t.Context()))
@@ -50,7 +58,7 @@ func TestMake(t *testing.T) {
 		)
 
 		// act
-		sut := decorate.Make("TEST NAME", func() (*starterMock, error) {
+		sut := decorate.MakeProbe("TEST NAME", func() (*starterMock, error) {
 			setup = true
 			return &starterMock{
 				StartFunc: func(ctx context.Context) error {
@@ -58,11 +66,14 @@ func TestMake(t *testing.T) {
 					return nil
 				},
 			}, nil
-		})
+		}, noopProbe())
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
 		assert.NoError(t, sut.Start(t.Context()))
+		assert.NoErrorEventually(t, time.Millisecond*200, func() error {
+			return sut.Probe(t.Context())
+		})
 		assert.NoError(t, sut.Close(t.Context()))
 		assert.Equal(t, "TEST NAME", sut.Name())
 		assert.Truef(t, setup, "setup")
@@ -76,10 +87,10 @@ func TestMake(t *testing.T) {
 		)
 
 		// act
-		sut := decorate.Make("TEST NAME", func() (*starterMock, error) {
+		sut := decorate.MakeProbe("TEST NAME", func() (*starterMock, error) {
 			setup = true
 			return nil, errors.New("some error")
-		})
+		}, noopProbe())
 
 		// assert
 		assert.Error(t, sut.Setup(t.Context()))
@@ -96,14 +107,14 @@ func TestMake(t *testing.T) {
 		)
 
 		// act
-		sut := decorate.Make("TEST NAME", func() (*starterMock, error) {
+		sut := decorate.MakeProbe("TEST NAME", func() (*starterMock, error) {
 			setup = true
 			return &starterMock{
 				StartFunc: func(ctx context.Context) error {
 					return nil
 				},
 			}, errors.New("some error")
-		})
+		}, noopProbe())
 
 		// assert
 		assert.Error(t, sut.Setup(t.Context()))
@@ -122,7 +133,7 @@ func TestMake(t *testing.T) {
 		)
 
 		// act
-		sut := decorate.Make("TEST NAME", func() (*setupperMock, error) {
+		sut := decorate.MakeProbe("TEST NAME", func() (*setupperMock, error) {
 			setup = true
 			return &setupperMock{
 				StartFunc: func(ctx context.Context) error {
@@ -133,7 +144,7 @@ func TestMake(t *testing.T) {
 					return nil
 				},
 			}, nil
-		})
+		}, noopProbe())
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
@@ -152,7 +163,7 @@ func TestMake(t *testing.T) {
 		)
 
 		// act
-		sut := decorate.Make("TEST NAME", func() (*contextSetupperMock, error) {
+		sut := decorate.MakeProbe("TEST NAME", func() (*contextSetupperMock, error) {
 			setup = true
 			return &contextSetupperMock{
 				StartFunc: func(ctx context.Context) error {
@@ -163,7 +174,7 @@ func TestMake(t *testing.T) {
 					return nil
 				},
 			}, nil
-		})
+		}, noopProbe())
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
@@ -182,7 +193,7 @@ func TestMake(t *testing.T) {
 		)
 
 		// act
-		sut := decorate.Make("TEST NAME", func() (*closerMock, error) {
+		sut := decorate.MakeProbe("TEST NAME", func() (*closerMock, error) {
 			setup = true
 			return &closerMock{
 				StartFunc: func(ctx context.Context) error {
@@ -193,7 +204,7 @@ func TestMake(t *testing.T) {
 					return nil
 				},
 			}, nil
-		})
+		}, noopProbe())
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
@@ -212,7 +223,7 @@ func TestMake(t *testing.T) {
 		)
 
 		// act
-		sut := decorate.Make("TEST NAME", func() (*contextCloserMock, error) {
+		sut := decorate.MakeProbe("TEST NAME", func() (*contextCloserMock, error) {
 			setup = true
 			return &contextCloserMock{
 				StartFunc: func(ctx context.Context) error {
@@ -223,7 +234,7 @@ func TestMake(t *testing.T) {
 					return nil
 				},
 			}, nil
-		})
+		}, noopProbe())
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
@@ -237,23 +248,22 @@ func TestMake(t *testing.T) {
 	t.Run("call probe on contextProber", func(t *testing.T) {
 		// arrange
 		var (
-			setup      = false
-			probeInner = false
-		)
-
-		// act
-		sut := decorate.Make("TEST NAME", func() (*contextProberMock, error) {
-			setup = true
-			return &contextProberMock{
+			setup     = false
+			component = &contextProberMock{
 				StartFunc: func(ctx context.Context) error {
 					return nil
 				},
 				ProbeFunc: func(ctx context.Context) error {
-					probeInner = true
 					return nil
 				},
-			}, nil
-		})
+			}
+		)
+
+		// act
+		sut := decorate.MakeProbe("TEST NAME", func() (*contextProberMock, error) {
+			setup = true
+			return component, nil
+		}, noopProbe())
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
@@ -264,7 +274,7 @@ func TestMake(t *testing.T) {
 		assert.NoError(t, sut.Close(t.Context()))
 		assert.Equal(t, "TEST NAME", sut.Name())
 		assert.Truef(t, setup, "setup")
-		assert.Truef(t, probeInner, "probeInner")
+		assert.Equal(t, 0, len(component.ProbeCalls()))
 	})
 
 	t.Run("call probe success", func(t *testing.T) {
@@ -274,14 +284,14 @@ func TestMake(t *testing.T) {
 		)
 
 		// act
-		sut := decorate.Make("TEST NAME", func() (*starterMock, error) {
+		sut := decorate.MakeProbe("TEST NAME", func() (*starterMock, error) {
 			setup = true
 			return &starterMock{
 				StartFunc: func(ctx context.Context) error {
 					return nil
 				},
 			}, nil
-		})
+		}, noopProbe())
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))

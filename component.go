@@ -32,6 +32,20 @@ func Make[T Component](name string, setup func() (T, error)) Component {
 	return decorate.Make(name, setup)
 }
 
+// MakeProbe a component by it's setup and probe functions. A convenience when the Component is not needed
+// as a reference by other parts of the application, but just needs it's lifecycle handled.
+// The probe function is called after Start to check if the Component is ready.
+func MakeProbe[T Component](name string, setup func() (T, error), probe func(ctx context.Context) error) Component {
+	return decorate.MakeProbe(name, setup, probe)
+}
+
+// prober is an interface that allows a Component to probe its readiness.
+type prober interface {
+	Probe(ctx context.Context) error
+}
+
+type proberFunc func(ctx context.Context) error
+
 // setupComponent allows a Component to create resources before Start
 type setupComponent interface {
 	Setup() error
@@ -41,6 +55,13 @@ type setupComponent interface {
 // The context gives the Deadline in which Setup must be complete.
 type contextSetupComponent interface {
 	Setup(ctx context.Context) error
+}
+
+// contextProbeComponent allows a Component to probe its readiness.
+// Probe is called after Start and before Close.
+// It will continue to be called until it returns nil or the Context is done.
+type contextProbeComponent interface {
+	Probe(ctx context.Context) error
 }
 
 // closeComponent is a standard io.Closer to free up resources on a graceful shutdown.
@@ -60,6 +81,7 @@ type namedComponent interface {
 type fullComponent interface {
 	contextSetupComponent
 	Component
+	contextProbeComponent
 	contextCloseComponent
 	namedComponent
 }
