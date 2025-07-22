@@ -35,6 +35,17 @@ func Truef(t *testing.T, got bool, format string, args ...any) bool {
 	return true
 }
 
+func Falsef(t *testing.T, got bool, format string, args ...any) bool {
+	t.Helper()
+	if got {
+		t.Logf(format, args...)
+		t.Fail()
+		return false
+	}
+
+	return true
+}
+
 func EqualSlice[T comparable](t *testing.T, expected, got []T) bool {
 	t.Helper()
 	if len(expected) != len(got) {
