@@ -36,14 +36,6 @@ type namer interface {
 	Name() string
 }
 
-type fullComponent interface {
-	contextSetupper
-	starter
-	contextProber
-	contextCloser
-	namer
-}
-
 type Component struct {
 	name  func() string
 	start func(ctx context.Context) error

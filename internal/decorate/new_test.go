@@ -15,7 +15,6 @@ func TestComponent(t *testing.T) {
 	t.Run("call start error", func(t *testing.T) {
 		var (
 			component = &starterMock{}
-			sut       = decorate.New(component)
 		)
 
 		component.StartFunc = func(ctx context.Context) error {
@@ -23,7 +22,7 @@ func TestComponent(t *testing.T) {
 		}
 
 		// act
-		sut = decorate.New(component)
+		sut := decorate.New(component)
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
@@ -39,7 +38,6 @@ func TestComponent(t *testing.T) {
 	t.Run("call start no error", func(t *testing.T) {
 		var (
 			component = &starterMock{}
-			sut       = decorate.New(component)
 		)
 
 		component.StartFunc = func(ctx context.Context) error {
@@ -47,7 +45,7 @@ func TestComponent(t *testing.T) {
 		}
 
 		// act
-		sut = decorate.New(component)
+		sut := decorate.New(component)
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
@@ -63,7 +61,6 @@ func TestComponent(t *testing.T) {
 	t.Run("probe fails with no start", func(t *testing.T) {
 		var (
 			component = &starterMock{}
-			sut       = decorate.New(component)
 		)
 
 		component.StartFunc = func(ctx context.Context) error {
@@ -71,7 +68,7 @@ func TestComponent(t *testing.T) {
 		}
 
 		// act
-		sut = decorate.New(component)
+		sut := decorate.New(component)
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
@@ -81,7 +78,6 @@ func TestComponent(t *testing.T) {
 	t.Run("probe succeeds with start", func(t *testing.T) {
 		var (
 			component = &starterMock{}
-			sut       = decorate.New(component)
 		)
 
 		component.StartFunc = func(ctx context.Context) error {
@@ -89,7 +85,7 @@ func TestComponent(t *testing.T) {
 		}
 
 		// act
-		sut = decorate.New(component)
+		sut := decorate.New(component)
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
@@ -102,7 +98,6 @@ func TestComponent(t *testing.T) {
 	t.Run("call setup error", func(t *testing.T) {
 		var (
 			component = &setupperMock{}
-			sut       = decorate.New(component)
 		)
 
 		component.StartFunc = func(ctx context.Context) error {
@@ -113,7 +108,7 @@ func TestComponent(t *testing.T) {
 		}
 
 		// act
-		sut = decorate.New(component)
+		sut := decorate.New(component)
 
 		// assert
 		assert.Error(t, sut.Setup(t.Context()))
@@ -128,7 +123,6 @@ func TestComponent(t *testing.T) {
 	t.Run("call setup no error", func(t *testing.T) {
 		var (
 			component = &setupperMock{}
-			sut       = decorate.New(component)
 		)
 
 		component.StartFunc = func(ctx context.Context) error {
@@ -139,7 +133,7 @@ func TestComponent(t *testing.T) {
 		}
 
 		// act
-		sut = decorate.New(component)
+		sut := decorate.New(component)
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
@@ -154,7 +148,6 @@ func TestComponent(t *testing.T) {
 	t.Run("call probe error", func(t *testing.T) {
 		var (
 			component = &contextProberMock{}
-			sut       = decorate.New(component)
 		)
 
 		component.StartFunc = func(ctx context.Context) error {
@@ -165,7 +158,7 @@ func TestComponent(t *testing.T) {
 		}
 
 		// act
-		sut = decorate.New(component)
+		sut := decorate.New(component)
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
@@ -178,7 +171,6 @@ func TestComponent(t *testing.T) {
 	t.Run("call probe no error", func(t *testing.T) {
 		var (
 			component = &contextProberMock{}
-			sut       = decorate.New(component)
 		)
 
 		component.StartFunc = func(ctx context.Context) error {
@@ -189,7 +181,7 @@ func TestComponent(t *testing.T) {
 		}
 
 		// act
-		sut = decorate.New(component)
+		sut := decorate.New(component)
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
@@ -204,7 +196,6 @@ func TestComponent(t *testing.T) {
 	t.Run("call setup context error", func(t *testing.T) {
 		var (
 			component = &contextSetupperMock{}
-			sut       = decorate.New(component)
 		)
 
 		component.StartFunc = func(ctx context.Context) error {
@@ -215,7 +206,7 @@ func TestComponent(t *testing.T) {
 		}
 
 		// act
-		sut = decorate.New(component)
+		sut := decorate.New(component)
 
 		// assert
 		assert.Error(t, sut.Setup(t.Context()))
@@ -230,7 +221,6 @@ func TestComponent(t *testing.T) {
 	t.Run("call setup context no error", func(t *testing.T) {
 		var (
 			component = &contextSetupperMock{}
-			sut       = decorate.New(component)
 		)
 
 		component.StartFunc = func(ctx context.Context) error {
@@ -241,7 +231,7 @@ func TestComponent(t *testing.T) {
 		}
 
 		// act
-		sut = decorate.New(component)
+		sut := decorate.New(component)
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
@@ -257,7 +247,6 @@ func TestComponent(t *testing.T) {
 	t.Run("call close error", func(t *testing.T) {
 		var (
 			component = &closerMock{}
-			sut       = decorate.New(component)
 		)
 
 		component.StartFunc = func(ctx context.Context) error {
@@ -268,7 +257,7 @@ func TestComponent(t *testing.T) {
 		}
 
 		// act
-		sut = decorate.New(component)
+		sut := decorate.New(component)
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
@@ -281,7 +270,6 @@ func TestComponent(t *testing.T) {
 	t.Run("call close no error", func(t *testing.T) {
 		var (
 			component = &closerMock{}
-			sut       = decorate.New(component)
 		)
 
 		component.StartFunc = func(ctx context.Context) error {
@@ -292,7 +280,7 @@ func TestComponent(t *testing.T) {
 		}
 
 		// act
-		sut = decorate.New(component)
+		sut := decorate.New(component)
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
@@ -305,7 +293,6 @@ func TestComponent(t *testing.T) {
 	t.Run("call close context error", func(t *testing.T) {
 		var (
 			component = &contextCloserMock{}
-			sut       = decorate.New(component)
 		)
 
 		component.StartFunc = func(ctx context.Context) error {
@@ -316,7 +303,7 @@ func TestComponent(t *testing.T) {
 		}
 
 		// act
-		sut = decorate.New(component)
+		sut := decorate.New(component)
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
@@ -329,7 +316,6 @@ func TestComponent(t *testing.T) {
 	t.Run("call close context no error", func(t *testing.T) {
 		var (
 			component = &contextCloserMock{}
-			sut       = decorate.New(component)
 		)
 
 		component.StartFunc = func(ctx context.Context) error {
@@ -340,7 +326,7 @@ func TestComponent(t *testing.T) {
 		}
 
 		// act
-		sut = decorate.New(component)
+		sut := decorate.New(component)
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
@@ -353,7 +339,6 @@ func TestComponent(t *testing.T) {
 	t.Run("call name", func(t *testing.T) {
 		var (
 			component = &namerMock{}
-			sut       = decorate.New(component)
 		)
 
 		component.StartFunc = func(ctx context.Context) error {
@@ -364,7 +349,7 @@ func TestComponent(t *testing.T) {
 		}
 
 		// act
-		sut = decorate.New(component)
+		sut := decorate.New(component)
 
 		// assert
 		assert.NoError(t, sut.Setup(t.Context()))
