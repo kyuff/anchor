@@ -3,6 +3,7 @@ package assert_test
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/kyuff/anchor/internal/assert"
 )
@@ -77,6 +78,20 @@ func TestAsserts(t *testing.T) {
 			failed: true,
 		},
 		{
+			name: "Falsef success",
+			assert: func(t *testing.T) {
+				assert.Falsef(t, false, "hello test")
+			},
+			failed: false,
+		},
+		{
+			name: "Falsef failed",
+			assert: func(t *testing.T) {
+				assert.Falsef(t, true, "hello test")
+			},
+			failed: true,
+		},
+		{
 			name: "NoError success",
 			assert: func(t *testing.T) {
 				assert.NoError(t, nil)
@@ -137,6 +152,39 @@ func TestAsserts(t *testing.T) {
 				assert.NoPanic(t, func() {
 					panic("test")
 				})
+			},
+			failed: true,
+		},
+
+		{
+			name: "NoPanic success",
+			assert: func(t *testing.T) {
+				assert.NoErrorEventually(t, time.Millisecond*100, func() error {
+					return nil
+				})
+			},
+			failed: false,
+		},
+		{
+			name: "NoPanic failed",
+			assert: func(t *testing.T) {
+				assert.NoErrorEventually(t, time.Millisecond*100, func() error {
+					return errors.New("test")
+				})
+			},
+			failed: true,
+		},
+		{
+			name: "NotNil success",
+			assert: func(t *testing.T) {
+				assert.NotNil(t, 5)
+			},
+			failed: false,
+		},
+		{
+			name: "NotNil failed",
+			assert: func(t *testing.T) {
+				assert.NotNil(t, nil)
 			},
 			failed: true,
 		},

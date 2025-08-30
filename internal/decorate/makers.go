@@ -111,9 +111,6 @@ func makeProbe(startTime *atomic.Int64, probe func(ctx context.Context) error) f
 
 func probeInner(c *Component) func(ctx context.Context) error {
 	return func(ctx context.Context) error {
-		if isNil(c.inner) {
-			return fmt.Errorf("nil make component")
-		}
 
 		if c, ok := c.inner.(contextProber); ok {
 			return c.Probe(ctx)
