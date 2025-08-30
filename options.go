@@ -8,13 +8,16 @@ import (
 	"github.com/kyuff/anchor/internal/logger"
 )
 
-type Option func(cfg *Config)
+// Option for an Anchor configuration.
+//
+// See config.go for defaults.
+type Option func(cfg *config)
 
 // WithLogger sets the Logger for the application.
 //
 // Default: No logging is done.
 func WithLogger(logger Logger) Option {
-	return func(opt *Config) {
+	return func(opt *config) {
 		opt.logger = logger
 	}
 }
@@ -36,13 +39,13 @@ func WithSlog(log *slog.Logger) Option {
 	)
 }
 
-// WithContext runs the Anchor in the given Context. If it is
-// cancelled, the Anchor will shutdown.
+// WithAnchorContext runs the Anchor in the given Context. If it is
+// canceled, the Anchor will shutdown.
 //
 // Default: context.Background()
-func WithContext(ctx context.Context) Option {
-	return func(cfg *Config) {
-		cfg.rootCtx = ctx
+func WithAnchorContext(ctx context.Context) Option {
+	return func(cfg *config) {
+		cfg.anchorCtx = ctx
 	}
 }
 
@@ -51,7 +54,7 @@ func WithContext(ctx context.Context) Option {
 //
 // Default: No timeout
 func WithSetupTimeout(timeout time.Duration) Option {
-	return func(cfg *Config) {
+	return func(cfg *config) {
 		cfg.setupTimeout = timeout
 	}
 }
@@ -61,7 +64,7 @@ func WithSetupTimeout(timeout time.Duration) Option {
 //
 // Default: No timeout
 func WithStartTimeout(timeout time.Duration) Option {
-	return func(cfg *Config) {
+	return func(cfg *config) {
 		cfg.startTimeout = timeout
 	}
 }
@@ -70,7 +73,7 @@ func WithStartTimeout(timeout time.Duration) Option {
 //
 // Default: No timeout
 func WithCloseTimeout(timeout time.Duration) Option {
-	return func(cfg *Config) {
+	return func(cfg *config) {
 		cfg.closeTimeout = timeout
 	}
 }
@@ -80,13 +83,19 @@ func WithCloseTimeout(timeout time.Duration) Option {
 // This is useful for enabling features that require all Components to be ready before they can be used.
 // If the function returns an error, the Anchor will fail to start and go into a shutdown state.
 func WithReadyCallback(fn func(ctx context.Context) error) Option {
-	return func(cfg *Config) {
+	return func(cfg *config) {
 		cfg.onReady = fn
 	}
 }
 
+// WithReadyCheckBackoff is called when a Component fails a Probe.
+//
+// The function should return the amount of time to wait before retrying.
+// If the function returns an error, the Anchor will fail to start and go into a shutdown state.
+//
+// Default: linear backoff with 100 millisecond increment
 func WithReadyCheckBackoff(fn func(ctx context.Context, attempt int) (time.Duration, error)) Option {
-	return func(cfg *Config) {
+	return func(cfg *config) {
 		cfg.readyCheckBackoff = fn
 	}
 }

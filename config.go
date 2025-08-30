@@ -5,10 +5,10 @@ import (
 	"time"
 )
 
-type Config struct {
+type config struct {
 	logger Logger
-	// rootCtx is used to derive the setup, start and close contexts.
-	rootCtx           context.Context
+	// anchorCtx is used to derive the setup, start and close contexts.
+	anchorCtx         context.Context
 	setupTimeout      time.Duration
 	startTimeout      time.Duration
 	closeTimeout      time.Duration
@@ -16,11 +16,11 @@ type Config struct {
 	readyCheckBackoff func(ctx context.Context, attempt int) (time.Duration, error)
 }
 
-func defaultOptions() *Config {
-	return applyOptions(&Config{},
+func defaultOptions() *config {
+	return applyOptions(&config{},
 		// add default options here
 		WithNoopLogger(),
-		WithContext(context.Background()),
+		WithAnchorContext(context.Background()),
 		WithSetupTimeout(0), // no timeout
 		WithStartTimeout(0), // no timeout
 		WithCloseTimeout(10*time.Second),
@@ -30,7 +30,7 @@ func defaultOptions() *Config {
 
 }
 
-func applyOptions(options *Config, opts ...Option) *Config {
+func applyOptions(options *config, opts ...Option) *config {
 	for _, opt := range opts {
 		opt(options)
 	}

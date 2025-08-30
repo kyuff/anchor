@@ -15,12 +15,12 @@ func TestOptions(t *testing.T) {
 	testCases := []struct {
 		name   string
 		option Option
-		assert func(t *testing.T, cfg *Config)
+		assert func(t *testing.T, cfg *config)
 	}{
 		{
 			name:   "WithLogger",
 			option: WithLogger(logger.Noop{}),
-			assert: func(t *testing.T, cfg *Config) {
+			assert: func(t *testing.T, cfg *config) {
 				if cfg.logger == nil {
 					t.Error("expected logger")
 				}
@@ -29,7 +29,7 @@ func TestOptions(t *testing.T) {
 		{
 			name:   "WithNoopLogger",
 			option: WithNoopLogger(),
-			assert: func(t *testing.T, cfg *Config) {
+			assert: func(t *testing.T, cfg *config) {
 				if cfg.logger == nil {
 					t.Error("expected logger")
 				}
@@ -38,7 +38,7 @@ func TestOptions(t *testing.T) {
 		{
 			name:   "WithDefaultSlog",
 			option: WithDefaultSlog(),
-			assert: func(t *testing.T, cfg *Config) {
+			assert: func(t *testing.T, cfg *config) {
 				if cfg.logger == nil {
 					t.Error("expected logger")
 				}
@@ -47,17 +47,17 @@ func TestOptions(t *testing.T) {
 		{
 			name:   "WithSlog",
 			option: WithSlog(slog.Default()),
-			assert: func(t *testing.T, cfg *Config) {
+			assert: func(t *testing.T, cfg *config) {
 				if cfg.logger == nil {
 					t.Error("expected logger")
 				}
 			},
 		},
 		{
-			name:   "WithContext",
-			option: WithContext(context.Background()),
-			assert: func(t *testing.T, cfg *Config) {
-				if cfg.rootCtx == nil {
+			name:   "WithAnchorContext",
+			option: WithAnchorContext(context.Background()),
+			assert: func(t *testing.T, cfg *config) {
+				if cfg.anchorCtx == nil {
 					t.Error("expected root context")
 				}
 			},
@@ -65,7 +65,7 @@ func TestOptions(t *testing.T) {
 		{
 			name:   "WithSetupTimeout",
 			option: WithSetupTimeout(time.Hour),
-			assert: func(t *testing.T, cfg *Config) {
+			assert: func(t *testing.T, cfg *config) {
 				if cfg.setupTimeout != time.Hour {
 					t.Error("expected setup timeout")
 				}
@@ -74,7 +74,7 @@ func TestOptions(t *testing.T) {
 		{
 			name:   "WithCloseTimeout",
 			option: WithCloseTimeout(time.Hour),
-			assert: func(t *testing.T, cfg *Config) {
+			assert: func(t *testing.T, cfg *config) {
 				if cfg.closeTimeout != time.Hour {
 					t.Error("expected close timeout")
 				}
@@ -85,7 +85,7 @@ func TestOptions(t *testing.T) {
 			option: WithReadyCallback(func(ctx context.Context) error {
 				return errors.New("WithReadyError")
 			}),
-			assert: func(t *testing.T, cfg *Config) {
+			assert: func(t *testing.T, cfg *config) {
 				if assert.NotNil(t, cfg.onReady) {
 					assert.Equal(t, "WithReadyError", cfg.onReady(context.Background()).Error())
 				}
@@ -96,7 +96,7 @@ func TestOptions(t *testing.T) {
 			option: WithReadyCheckBackoff(func(ctx context.Context, attempt int) (time.Duration, error) {
 				return time.Second * time.Duration(attempt), errors.New("WithReadyCheckBackoff")
 			}),
-			assert: func(t *testing.T, cfg *Config) {
+			assert: func(t *testing.T, cfg *config) {
 				if assert.NotNil(t, cfg.readyCheckBackoff) {
 					backoff, err := cfg.readyCheckBackoff(context.Background(), 5)
 					assert.Equal(t, time.Second*5, backoff)
@@ -107,7 +107,7 @@ func TestOptions(t *testing.T) {
 		{
 			name:   "WithFixedReadyCheckBackoff",
 			option: WithFixedReadyCheckBackoff(42 * time.Second),
-			assert: func(t *testing.T, cfg *Config) {
+			assert: func(t *testing.T, cfg *config) {
 				if assert.NotNil(t, cfg.readyCheckBackoff) {
 					backoff, err := cfg.readyCheckBackoff(context.Background(), 5)
 					assert.Equal(t, time.Second*42, backoff)
@@ -118,7 +118,7 @@ func TestOptions(t *testing.T) {
 		{
 			name:   "WithLinearReadyCheckBackoff",
 			option: WithLinearReadyCheckBackoff(2 * time.Second),
-			assert: func(t *testing.T, cfg *Config) {
+			assert: func(t *testing.T, cfg *config) {
 				if assert.NotNil(t, cfg.readyCheckBackoff) {
 					backoff, err := cfg.readyCheckBackoff(context.Background(), 5)
 					assert.Equal(t, time.Second*2*5, backoff)
@@ -129,7 +129,7 @@ func TestOptions(t *testing.T) {
 		{
 			name:   "WithExponentialReadyCheckBackoff",
 			option: WithExponentialReadyCheckBackoff(time.Second),
-			assert: func(t *testing.T, cfg *Config) {
+			assert: func(t *testing.T, cfg *config) {
 				if assert.NotNil(t, cfg.readyCheckBackoff) {
 					backoff, err := cfg.readyCheckBackoff(context.Background(), 5)
 					assert.Equal(t, time.Second*32, backoff) // 2^5 = 32
@@ -143,7 +143,7 @@ func TestOptions(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// arrange
 			var (
-				cfg = &Config{}
+				cfg = &config{}
 			)
 
 			// act
