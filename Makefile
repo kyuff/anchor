@@ -20,3 +20,5 @@ plantuml-docker:
 plantuml:
 	plantuml docs/*.pu
 
+lint:
+	golangci-lint run ./...
