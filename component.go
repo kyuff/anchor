@@ -8,7 +8,7 @@ import (
 
 // Component is a central part of an application that needs to have it's lifetime managed.
 //
-// A Component can optionally implement the setupComponent or closeComponent interfaces.
+// A Component can optionally Setup and Close methods..
 // By doing so, Anchor will guarantee to call the methods in order: Setup, Start, Close.
 // This allows applications to prepare and gracefully clean up.
 //
