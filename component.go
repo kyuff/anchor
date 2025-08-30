@@ -2,6 +2,7 @@ package anchor
 
 import (
 	"context"
+	"io"
 
 	"github.com/kyuff/anchor/internal/decorate"
 )
@@ -30,6 +31,12 @@ func Setup(name string, fn func() error) Component {
 // as a reference by other parts of the application, but just needs it's lifecycle handled.
 func Make[T Component](name string, setup func() (T, error)) Component {
 	return decorate.Make(name, setup)
+}
+
+// Close creates a component that have an empty Start() and Setup() method, but
+// have Close. It is a convenience to run cleanup code
+func Close(name string, closer io.Closer) Component {
+	return decorate.Close(name, closer)
 }
 
 // MakeProbe a component by it's setup and probe functions. A convenience when the Component is not needed
