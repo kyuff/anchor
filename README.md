@@ -5,12 +5,13 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/kyuff/anchor.svg)](https://pkg.go.dev/github.com/kyuff/anchor)
 [![codecov](https://codecov.io/gh/kyuff/anchor/graph/badge.svg?token=GA4GSQCLZE)](https://codecov.io/gh/kyuff/anchor)
 
-Library to manage application lifetime in a Go microservice architecture.
+Library to manage component lifetime in a Go microservice architecture.
 
 # Features
 
-* Simple API to manage application lifetime
-* Graceful shutdown of application components
+* Run Components in parallel using Go Routines
+* Simple API to manage component lifetime
+* Graceful shutdown of components
 * Freedom of choise for dependency injection
 * Convenience methods to wire external APIs into Anchor
 
