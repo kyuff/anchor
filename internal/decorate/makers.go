@@ -136,6 +136,6 @@ func makeNameCall(c *Component) func() string {
 }
 
 func isNil(a any) bool {
-	defer func() { recover() }()
+	defer func() { _ = recover() }()
 	return a == nil || reflect.ValueOf(a).IsNil()
 }
