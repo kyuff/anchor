@@ -47,6 +47,7 @@ func Run(wire anchor.Wire) int {
          NewHttpServer()
        ).
        Run()
+}
 ```
 
 internal/app/database.go
