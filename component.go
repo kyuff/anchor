@@ -2,13 +2,14 @@ package anchor
 
 import (
 	"context"
+	"io"
 
 	"github.com/kyuff/anchor/internal/decorate"
 )
 
 // Component is a central part of an application that needs to have it's lifetime managed.
 //
-// A Component can optionally implement the setupComponent or closeComponent interfaces.
+// A Component can optionally Setup and Close methods..
 // By doing so, Anchor will guarantee to call the methods in order: Setup, Start, Close.
 // This allows applications to prepare and gracefully clean up.
 //
@@ -30,6 +31,12 @@ func Setup(name string, fn func() error) Component {
 // as a reference by other parts of the application, but just needs it's lifecycle handled.
 func Make[T Component](name string, setup func() (T, error)) Component {
 	return decorate.Make(name, setup)
+}
+
+// Close creates a component that have an empty Start() and Setup() method, but
+// have Close. It is a convenience to run cleanup code
+func Close(name string, closer io.Closer) Component {
+	return decorate.Close(name, closer)
 }
 
 // MakeProbe a component by it's setup and probe functions. A convenience when the Component is not needed

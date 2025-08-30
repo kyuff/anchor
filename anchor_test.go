@@ -714,7 +714,7 @@ func TestAnchor(t *testing.T) {
 					return context.WithCancel(ctx)
 				},
 			}
-			sut = anchor.New(wire, anchor.WithContext(testCtx))
+			sut = anchor.New(wire, anchor.WithAnchorContext(testCtx))
 		)
 
 		for _, component := range components {
@@ -757,7 +757,7 @@ func TestAnchor(t *testing.T) {
 					}
 				},
 			}
-			sut = anchor.New(wire, anchor.WithContext(testCtx))
+			sut = anchor.New(wire, anchor.WithAnchorContext(testCtx))
 		)
 
 		for _, component := range components {

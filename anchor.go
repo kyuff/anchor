@@ -11,6 +11,8 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// New creates an Anchor that is bound to the Wire.
+// When the Wire is closed, the Anchor will Close all Components.
 func New(wire Wire, opts ...Option) *Anchor {
 	return &Anchor{
 		cfg:       applyOptions(defaultOptions(), opts...),
@@ -19,11 +21,16 @@ func New(wire Wire, opts ...Option) *Anchor {
 	}
 }
 
+// Anchor the application Components to a Wire.
+//
+// The Anchor will run each Component in the order they are added.
+// A Component will follow the lifecycle steps (Setup, Start, Close), so the full application start and close
+// gracefully.
 type Anchor struct {
 	// Wire controls the time that the application runs.
 	// The application shuts down when the context returned is cancelled.
 	wire       Wire
-	cfg        *Config
+	cfg        *config
 	components []fullComponent
 	running    atomic.Bool
 	// index to the last component that was setup
@@ -55,18 +62,20 @@ func (a *Anchor) Add(components ...Component) *Anchor {
 	return a
 }
 
+// Run is blocking until the Wire closes or a Component returns an error.
+// When either happens, each Component is closed in in reverse order of which they were added and started.
 func (a *Anchor) Run() int {
 	if !a.running.CompareAndSwap(false, true) {
 		panic("anchor is already running")
 	}
 
 	if len(a.components) == 0 {
-		a.cfg.logger.ErrorfCtx(a.cfg.rootCtx, "No components added. Aborting ...")
+		a.cfg.logger.ErrorfCtx(a.cfg.anchorCtx, "No components added. Aborting ...")
 		return OK
 	}
 
 	// wire the anchor context
-	ctx, cancel := a.wire.Wire(a.cfg.rootCtx)
+	ctx, cancel := a.wire.Wire(a.cfg.anchorCtx)
 	defer cancel()
 
 	closed := make(chan int)
@@ -224,19 +233,19 @@ func (a *Anchor) setupComponent(ctx context.Context, component fullComponent) (c
 	go func() {
 		defer func() {
 			if panicErr := recover(); panicErr != nil {
-				a.cfg.logger.ErrorfCtx(a.cfg.rootCtx, "[anchor] Setup %q panic: %v", component.Name(), panicErr)
+				a.cfg.logger.ErrorfCtx(a.cfg.anchorCtx, "[anchor] Setup %q panic: %v", component.Name(), panicErr)
 				done <- SetupFailed
 			}
 		}()
 
 		err := component.Setup(ctx)
 		if err != nil {
-			a.cfg.logger.ErrorfCtx(a.cfg.rootCtx, "[anchor] Setup %q failed: %v", component.Name(), err)
+			a.cfg.logger.ErrorfCtx(a.cfg.anchorCtx, "[anchor] Setup %q failed: %v", component.Name(), err)
 			done <- SetupFailed
 			return
 		}
 
-		a.cfg.logger.InfofCtx(a.cfg.rootCtx, "[anchor] Setup %q", component.Name())
+		a.cfg.logger.InfofCtx(a.cfg.anchorCtx, "[anchor] Setup %q", component.Name())
 		done <- OK
 	}()
 
@@ -274,14 +283,14 @@ func (a *Anchor) closeAll(ctx context.Context) int {
 func (a *Anchor) closeComponent(ctx context.Context, component fullComponent) {
 	defer func() {
 		if panicErr := recover(); panicErr != nil {
-			a.cfg.logger.ErrorfCtx(a.cfg.rootCtx, "[anchor] Close %q panic: %v", component.Name(), panicErr)
+			a.cfg.logger.ErrorfCtx(a.cfg.anchorCtx, "[anchor] Close %q panic: %v", component.Name(), panicErr)
 		}
 	}()
 
 	err := component.Close(ctx)
 	if err != nil {
-		a.cfg.logger.ErrorfCtx(a.cfg.rootCtx, "[anchor] Closed component %s: %v", component.Name(), err)
+		a.cfg.logger.ErrorfCtx(a.cfg.anchorCtx, "[anchor] Closed component %s: %v", component.Name(), err)
 	}
 
-	a.cfg.logger.InfofCtx(a.cfg.rootCtx, "[anchor] Closed component %s", component.Name())
+	a.cfg.logger.InfofCtx(a.cfg.anchorCtx, "[anchor] Closed component %s", component.Name())
 }
