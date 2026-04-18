@@ -41,6 +41,34 @@ func TestComponent(t *testing.T) {
 		}
 	})
 
+	t.Run("SetupContext", func(t *testing.T) {
+		// arrange
+		var (
+			called bool
+			gotCtx context.Context
+		)
+
+		// act
+		sut := anchor.SetupContext("TEST NAME", func(ctx context.Context) error {
+			called = true
+			gotCtx = ctx
+			return nil
+		})
+
+		// assert
+		assert.NoError(t, sut.Start(t.Context()))
+		component, ok := sut.(interface {
+			Setup(ctx context.Context) error
+			Name() string
+		})
+		if assert.Truef(t, ok, "expected Setup() method") {
+			assert.NoError(t, component.Setup(t.Context()))
+			assert.Truef(t, called, "not called")
+			assert.Truef(t, gotCtx == t.Context(), "expected context to be forwarded")
+			assert.Equal(t, "TEST NAME", component.Name())
+		}
+	})
+
 	t.Run("Close", func(t *testing.T) {
 		// arrange
 		var (

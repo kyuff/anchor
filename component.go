@@ -27,6 +27,13 @@ func Setup(name string, fn func() error) Component {
 	return decorate.Setup(name, fn)
 }
 
+// SetupContext creates a component that have an empty Start() and Close() method, but
+// have Setup with a context. It is a convenience to run code before full application start
+// when the setup needs the context deadline or cancellation.
+func SetupContext(name string, fn func(ctx context.Context) error) Component {
+	return decorate.SetupContext(name, fn)
+}
+
 // Make a component by it's setup func. A convenience when the Component is not needed
 // as a reference by other parts of the application, but just needs it's lifecycle handled.
 func Make[T Component](name string, setup func() (T, error)) Component {
