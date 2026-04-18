@@ -8,6 +8,7 @@ on:
     types: [opened, reopened, synchronize]
 jobs:
   update_release_draft:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       # write permission is required to create a github release
