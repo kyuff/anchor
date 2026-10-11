@@ -4,7 +4,7 @@ go 1.26.0
 
 tool github.com/matryer/moq
 
-require golang.org/x/sync v0.23.0
+require golang.org/x/sync v0.24.0
 
 require (
 	github.com/matryer/moq v0.5.3 // indirect
